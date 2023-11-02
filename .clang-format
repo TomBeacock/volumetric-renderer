@@ -1,0 +1,10 @@
+---
+BasedOnStyle: Chromium
+---
+Language: Cpp
+AccessModifierOffset: -2
+AlignAfterOpenBracket: BlockIndent
+IncludeBlocks: Regroup
+IndentWidth: 4
+PenaltyReturnTypeOnItsOwnLine: 1000
+PointerAlignment: Right
