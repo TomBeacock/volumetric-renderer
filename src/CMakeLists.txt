@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.12)
+
 project(volumetric-renderer)
 
 message(STATUS "Building executable...")
@@ -9,6 +11,7 @@ endif()
 add_executable(${PROJECT_NAME} ${OPTIONS}
 	"main.cpp"
 	"vulkan_context.h" "vulkan_context.cpp"
+	"imgui_context.h" "imgui_context.cpp"
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE extern)
 target_compile_definitions(${PROJECT_NAME} PRIVATE RES_PATH="${CMAKE_SOURCE_DIR}/res/")

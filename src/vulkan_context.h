@@ -6,7 +6,14 @@
 #include <optional>
 #include <vector>
 
+struct ImDrawData;
+
+namespace Vol {
+class ImGuiContext;
+
 class VulkanContext {
+    friend class ImGuiContext;
+
   private:
     struct SwapChain {
         VkSwapchainKHR handle = VK_NULL_HANDLE;
@@ -21,7 +28,8 @@ class VulkanContext {
     explicit VulkanContext(SDL_Window *window);
     ~VulkanContext();
 
-    void draw_frame();
+    void begin_render_pass();
+    void end_render_pass();
     void recreate_swap_chain();
     void wait_till_idle();
     void framebuffer_size_changed();
@@ -68,5 +76,7 @@ class VulkanContext {
     std::vector<VkSemaphore> render_finished_semaphores;
     std::vector<VkFence> in_flight_fences;
     uint32_t frame_index = 0;
+    uint32_t image_index = 0;
     bool framebuffer_size_dirty = false;
 };
+}  // namespace Vol

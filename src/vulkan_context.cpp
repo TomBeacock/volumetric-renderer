@@ -127,7 +127,7 @@ uint32_t find_memory_type(
     VkMemoryPropertyFlags properties
 );
 
-VulkanContext::VulkanContext(SDL_Window *window) : window(window) {
+Vol::VulkanContext::VulkanContext(SDL_Window *window) : window(window) {
     create_instance();
     create_surface();
     select_physical_device();
@@ -143,7 +143,7 @@ VulkanContext::VulkanContext(SDL_Window *window) : window(window) {
     create_sync_objects();
 }
 
-VulkanContext::~VulkanContext() {
+Vol::VulkanContext::~VulkanContext() {
     cleanup_swap_chain();
 
     vkDestroyBuffer(device, vertex_buffer, nullptr);
@@ -165,14 +165,13 @@ VulkanContext::~VulkanContext() {
     vkDestroyInstance(instance, nullptr);
 }
 
-void VulkanContext::draw_frame() {
+void Vol::VulkanContext::begin_render_pass() {
     // Wait to start frame
     vkWaitForFences(
         device, 1, &in_flight_fences[frame_index], VK_TRUE, UINT64_MAX
     );
 
     // Get image index from swap chain
-    uint32_t image_index;
     VkResult result = vkAcquireNextImageKHR(
         device, swap_chain.handle, UINT64_MAX,
         image_available_semaphores[frame_index], VK_NULL_HANDLE, &image_index
@@ -188,9 +187,79 @@ void VulkanContext::draw_frame() {
     // Image successfully accquired, reset fence and begin frame
     vkResetFences(device, 1, &in_flight_fences[frame_index]);
 
-    // Record command buffer
-    vkResetCommandBuffer(command_buffers[frame_index], 0);
-    record_command_buffer(command_buffers[frame_index], image_index);
+    // Reset command buffer
+    VkCommandBuffer command_buffer = command_buffers[frame_index];
+    vkResetCommandBuffer(command_buffer, 0);
+
+    // Define command buffer begin information
+    VkCommandBufferBeginInfo begin_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = 0,
+        .pInheritanceInfo = nullptr,
+    };
+
+    // Begin command buffer
+    if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to begin command buffer");
+    }
+
+    // Define render pass begin info
+    VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+
+    VkRenderPassBeginInfo render_pass_begin_info = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass = render_pass,
+        .framebuffer = swap_chain.frame_buffers[image_index],
+        .renderArea = {{0, 0}, swap_chain.extent},
+        .clearValueCount = 1,
+        .pClearValues = &clear_color,
+    };
+
+    vkCmdBeginRenderPass(
+        command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE
+    );
+
+    vkCmdBindPipeline(
+        command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline
+    );
+
+    // Set viewport
+    VkViewport viewport = {
+        .x = 0.0f,
+        .y = 0.0f,
+        .width = static_cast<float>(swap_chain.extent.width),
+        .height = static_cast<float>(swap_chain.extent.height),
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f,
+    };
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+    // Define scissor
+    VkRect2D scissor = {
+        .offset = {0, 0},
+        .extent = swap_chain.extent,
+    };
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+    // Bind buffers
+    VkBuffer vertex_buffers[] = {vertex_buffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+    // Draw
+    vkCmdDraw(command_buffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+}
+
+void Vol::VulkanContext::end_render_pass() {
+    VkCommandBuffer command_buffer = command_buffers[frame_index];
+
+    // End render pass
+    vkCmdEndRenderPass(command_buffer);
+
+    // End command buffer
+    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to end command buffer");
+    }
 
     // Submit command buffer
     VkPipelineStageFlags wait_stages[] = {
@@ -224,7 +293,7 @@ void VulkanContext::draw_frame() {
         .pResults = nullptr,
     };
 
-    result = vkQueuePresentKHR(present_queue, &present_info);
+    VkResult result = vkQueuePresentKHR(present_queue, &present_info);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
         framebuffer_size_dirty) {
@@ -238,7 +307,7 @@ void VulkanContext::draw_frame() {
     frame_index = (frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void VulkanContext::recreate_swap_chain() {
+void Vol::VulkanContext::recreate_swap_chain() {
     wait_till_idle();
 
     cleanup_swap_chain();
@@ -248,15 +317,15 @@ void VulkanContext::recreate_swap_chain() {
     create_framebuffers();
 }
 
-void VulkanContext::wait_till_idle() {
+void Vol::VulkanContext::wait_till_idle() {
     vkDeviceWaitIdle(device);
 }
 
-void VulkanContext::framebuffer_size_changed() {
+void Vol::VulkanContext::framebuffer_size_changed() {
     framebuffer_size_dirty = true;
 }
 
-void VulkanContext::create_instance() {
+void Vol::VulkanContext::create_instance() {
     // Check validation layers
     if (enable_validation_layers && !validation_layers_supported()) {
         throw std::runtime_error("Requested validation layer not available");
@@ -299,13 +368,13 @@ void VulkanContext::create_instance() {
     vkCreateInstance(&create_info, nullptr, &instance);
 }
 
-void VulkanContext::create_surface() {
+void Vol::VulkanContext::create_surface() {
     if (!SDL_Vulkan_CreateSurface(window, instance, &surface)) {
         throw std::runtime_error("Failed to create surface");
     }
 }
 
-void VulkanContext::select_physical_device() {
+void Vol::VulkanContext::select_physical_device() {
     // Query physical device count
     uint32_t device_count;
     vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
@@ -340,7 +409,7 @@ void VulkanContext::select_physical_device() {
 #endif  // !NDEBUG
 }
 
-void VulkanContext::create_device() {
+void Vol::VulkanContext::create_device() {
     // Get queue indices
     QueueFamilyIndices queue_indices =
         get_queue_families(physical_device, surface);
@@ -399,7 +468,7 @@ void VulkanContext::create_device() {
     vkGetDeviceQueue(device, *queue_indices.presentation, 0, &present_queue);
 }
 
-void VulkanContext::create_swap_chain() {
+void Vol::VulkanContext::create_swap_chain() {
     SwapChainSupportDetails swap_chain_support =
         get_swap_chain_support(physical_device, surface);
 
@@ -467,7 +536,7 @@ void VulkanContext::create_swap_chain() {
     );
 }
 
-void VulkanContext::create_image_views() {
+void Vol::VulkanContext::create_image_views() {
     swap_chain.image_views.resize(swap_chain.images.size());
 
     VkComponentMapping components = {
@@ -503,7 +572,7 @@ void VulkanContext::create_image_views() {
     }
 }
 
-void VulkanContext::create_render_pass() {
+void Vol::VulkanContext::create_render_pass() {
     // Define color attachment
     VkAttachmentDescription color_attachment = {
         .format = swap_chain.format,
@@ -556,7 +625,7 @@ void VulkanContext::create_render_pass() {
     }
 }
 
-void VulkanContext::create_graphics_pipeline() {
+void Vol::VulkanContext::create_graphics_pipeline() {
     // Read SPIR-V files
     auto vert_code = read_binary_file(RES("shaders/basic_vert.spv"));
     auto frag_code = read_binary_file(RES("shaders/basic_frag.spv"));
@@ -717,7 +786,7 @@ void VulkanContext::create_graphics_pipeline() {
     vkDestroyShaderModule(device, frag_module, nullptr);
 }
 
-void VulkanContext::create_framebuffers() {
+void Vol::VulkanContext::create_framebuffers() {
     swap_chain.frame_buffers.resize(swap_chain.image_views.size());
 
     for (size_t i = 0; i < swap_chain.image_views.size(); i++) {
@@ -741,7 +810,7 @@ void VulkanContext::create_framebuffers() {
     }
 }
 
-void VulkanContext::create_command_pool() {
+void Vol::VulkanContext::create_command_pool() {
     QueueFamilyIndices queue_familiy_indices =
         get_queue_families(physical_device, surface);
 
@@ -759,7 +828,7 @@ void VulkanContext::create_command_pool() {
     }
 }
 
-void VulkanContext::create_vertex_buffer() {
+void Vol::VulkanContext::create_vertex_buffer() {
     // Define vertex buffer creation info
     VkBufferCreateInfo buffer_create_info = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -807,7 +876,7 @@ void VulkanContext::create_vertex_buffer() {
     vkUnmapMemory(device, vertex_buffer_memory);
 }
 
-void VulkanContext::allocate_command_buffers() {
+void Vol::VulkanContext::allocate_command_buffers() {
     command_buffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     // Define command buffer allocation information
@@ -826,7 +895,7 @@ void VulkanContext::allocate_command_buffers() {
     }
 }
 
-void VulkanContext::create_sync_objects() {
+void Vol::VulkanContext::create_sync_objects() {
     image_available_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
     render_finished_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
     in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -862,7 +931,7 @@ void VulkanContext::create_sync_objects() {
     }
 }
 
-void VulkanContext::record_command_buffer(
+void Vol::VulkanContext::record_command_buffer(
     VkCommandBuffer command_buffer,
     uint32_t image_index
 ) {
@@ -933,7 +1002,7 @@ void VulkanContext::record_command_buffer(
     }
 }
 
-void VulkanContext::cleanup_swap_chain() {
+void Vol::VulkanContext::cleanup_swap_chain() {
     for (auto framebuffer : swap_chain.frame_buffers) {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
