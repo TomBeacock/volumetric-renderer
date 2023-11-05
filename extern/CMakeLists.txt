@@ -20,6 +20,10 @@ message(STATUS "Building glm...")
 add_subdirectory("glm")
 target_link_libraries(${PROJECT_NAME} INTERFACE glm)
 
+# freetype
+message(STATUS "Building freetype...")
+add_subdirectory("freetype")
+
 # imgui
 add_library(imgui STATIC
 	"imgui/imgui.h" "imgui/imgui.cpp"
@@ -30,12 +34,14 @@ add_library(imgui STATIC
 	"imgui/imgui_widgets.cpp"
 	"imgui/imstb_rectpack.h"
 	"imgui/imstb_textedit.h"
-	"imgui/imstb_truetype.h"
+	"imgui/misc/freetype/imgui_freetype.h" "imgui/misc/freetype/imgui_freetype.cpp"
 	"imgui/backends/imgui_impl_sdl3.h" "imgui/backends/imgui_impl_sdl3.cpp"
 	"imgui/backends/imgui_impl_vulkan.h" "imgui/backends/imgui_impl_vulkan.cpp"
 )
-target_link_libraries(imgui PRIVATE SDL3::SDL3 Vulkan::Vulkan)
+
+target_link_libraries(imgui PRIVATE SDL3::SDL3 Vulkan::Vulkan freetype)
 target_include_directories(imgui PUBLIC "${PROJECT_SOURCE_DIR}/imgui")
 target_include_directories(imgui INTERFACE "${PROJECT_SOURCE_DIR}/imgui/backends")
+target_compile_definitions(imgui PRIVATE IMGUI_ENABLE_FREETYPE)
 
 target_link_libraries(${PROJECT_NAME} INTERFACE imgui)
