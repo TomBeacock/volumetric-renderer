@@ -20,6 +20,7 @@ Vol::ImGuiContext::ImGuiContext(
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.Fonts->AddFontFromFileTTF(RES_PATH "fonts/ARIAL.TTF", 14);
+    io.Fonts->AddFontFromFileTTF(RES_PATH "fonts/ARIALBD.TTF", 16);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
     // Init backends

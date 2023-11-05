@@ -124,7 +124,13 @@ void Vol::UI::update_controls() {
             ImGuiChildFlags_AlwaysUseWindowPadding
         )) {
         // Create child content
+        ImFont *heading_font = ImGui::GetIO().Fonts->Fonts[1];
+        ImGui::PushFont(heading_font);
         ImGui::Text("Display");
+        ImGui::PopFont();
+
+        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
         static float brightness = 0.0f, contrast = 0.0f;
         if (ImGui::BeginTable("display_controls", 3)) {
             ImGui::TableSetupColumn(
