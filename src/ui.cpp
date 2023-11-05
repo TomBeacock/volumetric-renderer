@@ -8,16 +8,31 @@
 Vol::UI::UI() {
     // Set style
     ImGuiStyle &style = ImGui::GetStyle();
+
+    // Style variables
     style.WindowBorderSize = 0.0f;
     style.WindowPadding = ImVec2(4.0f, 0.0f);
     style.ChildRounding = 4.0f;
+    style.PopupRounding = 2.0f;
     style.FrameRounding = 2.0f;
     style.GrabRounding = 10.0f;
+
+    // Colors
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
     style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
     style.Colors[ImGuiCol_FrameBg] = ImVec4(0.00802f, 0.00857f, 0.00913f, 1.0f);
+    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.02416f, 0.02519f, 0.02843f, 1.0f);
+    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.02416f, 0.02519f, 0.02843f, 1.0f);
+
+    style.Colors[ImGuiCol_Border] = ImVec4(0.03689f, 0.03955f, 0.04817f, 1.0f);
+
+    style.Colors[ImGuiCol_Text] = ImVec4(0.54572f, 0.54572f, 0.54572f, 1.0f);
+    style.Colors[ImGuiCol_HeaderHovered] =
+        ImVec4(0.0137f, 0.0137f, 0.01444f, 1.0f);
     style.Colors[ImGuiCol_SliderGrab] =
         ImVec4(0.43415f, 0.43415f, 0.42869f, 1.0f);
+    style.Colors[ImGuiCol_Separator] =
+        ImVec4(0.00802f, 0.00857f, 0.00913f, 1.0f);
 }
 
 void Vol::UI::update() {
@@ -40,7 +55,14 @@ void Vol::UI::update_main_menu_bar() {
 
     // Main menu bar
     if (ImGui::BeginMainMenuBar()) {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
         if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Open", "Ctrl+O")) {
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit", "Alt+F4")) {
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
@@ -50,8 +72,11 @@ void Vol::UI::update_main_menu_bar() {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
+            if (ImGui::MenuItem("About")) {
+            }
             ImGui::EndMenu();
         }
+        ImGui::PopStyleVar(2);
     }
     ImGui::EndMainMenuBar();
 
@@ -101,7 +126,6 @@ void Vol::UI::update_viewport() {
     const ImGuiViewport *viewport = ImGui::GetMainViewport();
     float viewport_width = viewport->WorkSize.x - 400.0f;
     if (ImGui::BeginChild("viewport", ImVec2(viewport_width, 0.0f))) {
-        ImGui::Text("Viewport");
     }
 
     // End child
@@ -114,9 +138,6 @@ void Vol::UI::update_viewport() {
 void Vol::UI::update_controls() {
     // Push child style
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-    ImGui::PushStyleColor(
-        ImGuiCol_ChildBg, ImVec4(0.02416f, 0.02519f, 0.02843f, 1.0f)
-    );
 
     // Begin child
     if (ImGui::BeginChild(
@@ -126,7 +147,9 @@ void Vol::UI::update_controls() {
         // Create child content
         ImFont *heading_font = ImGui::GetIO().Fonts->Fonts[1];
         ImGui::PushFont(heading_font);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
         ImGui::Text("Display");
+        ImGui::PopStyleColor();
         ImGui::PopFont();
 
         ImGui::Dummy(ImVec2(0.0f, 4.0f));
@@ -147,13 +170,14 @@ void Vol::UI::update_controls() {
             slider("Contrast", &contrast, 0.0f, 100.0f);
         }
         ImGui::EndTable();
+
+        ImGui::Separator();
     }
 
     // End child
     ImGui::EndChild();
 
     // Pop child style
-    ImGui::PopStyleColor();
     ImGui::PopStyleVar();
 }
 
@@ -177,6 +201,8 @@ void Vol::UI::slider(
 
     ImGui::TableSetColumnIndex(2);
     ImGui::PushItemWidth(-FLT_MIN);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1);
     std::string input_label = "##" + label + "_input";
     ImGui::InputFloat(input_label.c_str(), v, 0.0f, 0.0f, "%.1f");
+    ImGui::PopStyleVar();
 }
