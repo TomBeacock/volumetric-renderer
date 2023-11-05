@@ -19,6 +19,7 @@ Vol::ImGuiContext::ImGuiContext(
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
+    io.Fonts->AddFontFromFileTTF(RES_PATH "fonts/ARIAL.TTF", 14);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
     // Init backends
@@ -34,6 +35,10 @@ Vol::ImGuiContext::~ImGuiContext() {
     ImGui::DestroyContext();
 }
 
+void Vol::ImGuiContext::process_event(SDL_Event *event) {
+    ImGui_ImplSDL3_ProcessEvent(event);
+}
+
 void Vol::ImGuiContext::render() {
     VkCommandBuffer command_buffer =
         vulkan_context->command_buffers[vulkan_context->frame_index];
@@ -41,6 +46,10 @@ void Vol::ImGuiContext::render() {
     ImGui::Render();
     ImDrawData *draw_data = ImGui::GetDrawData();
     ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
+}
+
+void Vol::ImGuiContext::end_frame() {
+    ImGui::EndFrame();
 }
 
 void Vol::ImGuiContext::init_backends(SDL_Window *window) {

@@ -1,8 +1,5 @@
 #include <SDL.h>
 #include <SDL_main.h>
-#include <imgui.h>
-#include <imgui_impl_sdl3.h>
-#include <imgui_impl_vulkan.h>
 #include <vulkan/vulkan.h>
 
 #include <glm/glm.hpp>
@@ -11,6 +8,7 @@
 #include <stdexcept>
 
 #include "imgui_context.h"
+#include "ui.h"
 #include "vulkan_context.h"
 
 int SDL_main(int argc, char *argv[]) {
@@ -25,12 +23,14 @@ int SDL_main(int argc, char *argv[]) {
     Vol::ImGuiContext *imgui_context =
         new Vol::ImGuiContext(window, vulkan_context);
 
+    Vol::UI ui{};
+
     bool running = true;
     while (running) {
         // Handle events
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            ImGui_ImplSDL3_ProcessEvent(&e);
+            imgui_context->process_event(&e);
             switch (e.type) {
                 case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
                     vulkan_context->framebuffer_size_changed();
@@ -43,20 +43,15 @@ int SDL_main(int argc, char *argv[]) {
             }
         }
 
-        // Begin ImGui frame
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplSDL3_NewFrame();
-        ImGui::NewFrame();
-
-        // Display demo window
-        bool show_demo = true;
-        ImGui::ShowDemoWindow(&show_demo);
+        ui.update();
 
         bool minimized = SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED;
         if (!minimized) {
             vulkan_context->begin_render_pass();
             imgui_context->render();
             vulkan_context->end_render_pass();
+        } else {
+            imgui_context->end_frame();
         }
     }
 
