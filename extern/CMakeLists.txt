@@ -25,6 +25,7 @@ message(STATUS "Building freetype...")
 add_subdirectory("freetype")
 
 # imgui
+message(STATUS "Building imgui...")
 add_library(imgui STATIC
 	"imgui/imgui.h" "imgui/imgui.cpp"
 	"imgui/imgui_demo.cpp"
@@ -45,3 +46,8 @@ target_include_directories(imgui INTERFACE "${PROJECT_SOURCE_DIR}/imgui/backends
 target_compile_definitions(imgui PRIVATE IMGUI_ENABLE_FREETYPE)
 
 target_link_libraries(${PROJECT_NAME} INTERFACE imgui)
+
+# native file dialog extended
+message(STATUS "Building native file dialog extended...")
+add_subdirectory(nativefiledialog-extended)
+target_link_libraries(${PROJECT_NAME} INTERFACE nfd)
