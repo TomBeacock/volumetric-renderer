@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include <SDL_main.h>
+#include <nfd.h>
 #include <vulkan/vulkan.h>
 
 #include <glm/glm.hpp>
@@ -8,11 +9,12 @@
 #include <stdexcept>
 
 #include "imgui_context.h"
-#include "ui.h"
+#include "ui/ui_context.h"
 #include "vulkan_context.h"
 
 int SDL_main(int argc, char *argv[]) {
     SDL_Init(SDL_INIT_VIDEO);
+    NFD_Init();
 
     SDL_WindowFlags window_flags =
         (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN |
@@ -23,7 +25,7 @@ int SDL_main(int argc, char *argv[]) {
     Vol::ImGuiContext *imgui_context =
         new Vol::ImGuiContext(window, vulkan_context);
 
-    Vol::UI ui{};
+    Vol::UI::UIContext ui_context{};
 
     bool running = true;
     while (running) {
@@ -43,7 +45,7 @@ int SDL_main(int argc, char *argv[]) {
             }
         }
 
-        ui.update();
+        ui_context.update();
 
         bool minimized = SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED;
         if (!minimized) {
@@ -61,6 +63,8 @@ int SDL_main(int argc, char *argv[]) {
     delete vulkan_context;
 
     SDL_DestroyWindow(window);
+
+    NFD_Quit();
     SDL_Quit();
 
     return 0;

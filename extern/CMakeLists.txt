@@ -36,6 +36,7 @@ add_library(imgui STATIC
 	"imgui/imstb_rectpack.h"
 	"imgui/imstb_textedit.h"
 	"imgui/misc/freetype/imgui_freetype.h" "imgui/misc/freetype/imgui_freetype.cpp"
+	"imgui/misc/cpp/imgui_stdlib.h" "imgui/misc/cpp/imgui_stdlib.cpp"
 	"imgui/backends/imgui_impl_sdl3.h" "imgui/backends/imgui_impl_sdl3.cpp"
 	"imgui/backends/imgui_impl_vulkan.h" "imgui/backends/imgui_impl_vulkan.cpp"
 )
