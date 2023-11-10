@@ -18,7 +18,7 @@ target_link_libraries(${PROJECT_NAME} INTERFACE SDL3::SDL3)
 # glm
 message(STATUS "Building glm...")
 add_subdirectory("glm")
-target_link_libraries(${PROJECT_NAME} INTERFACE glm)
+target_link_libraries(${PROJECT_NAME} INTERFACE glm::glm)
 
 # freetype
 message(STATUS "Building freetype...")
@@ -52,3 +52,11 @@ target_link_libraries(${PROJECT_NAME} INTERFACE imgui)
 message(STATUS "Building native file dialog extended...")
 add_subdirectory(nativefiledialog-extended)
 target_link_libraries(${PROJECT_NAME} INTERFACE nfd)
+
+# NrrdIO
+message(STATUS "Building NrrdIO...")
+set(QNANHIBIT ON)
+add_subdirectory("NrrdIO")
+target_compile_definitions(NrrdIO PUBLIC TEEM_STATIC)
+target_include_directories(NrrdIO INTERFACE "${PROJECT_SOURCE_DIR}/NrrdIO")
+target_link_libraries(${PROJECT_NAME} INTERFACE NrrdIO)
