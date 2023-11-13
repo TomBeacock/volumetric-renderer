@@ -1,6 +1,8 @@
 #include "imgui_context.h"
 
-#include <SDL.h>
+#include "vulkan_context.h"
+
+#include <SDL3/SDL.h>
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui.h>
@@ -8,13 +10,11 @@
 
 #include <stdexcept>
 
-#include "vulkan_context.h"
-
 Vol::ImGuiContext::ImGuiContext(
     SDL_Window *window,
-    VulkanContext *vulkan_context
-)
-    : vulkan_context(vulkan_context) {
+    VulkanContext *vulkan_context)
+    : vulkan_context(vulkan_context)
+{
     // Create ImGui Context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -27,7 +27,8 @@ Vol::ImGuiContext::ImGuiContext(
     init_backends(window);
 }
 
-Vol::ImGuiContext::~ImGuiContext() {
+Vol::ImGuiContext::~ImGuiContext()
+{
     // Destory descriptor pool
     vkDestroyDescriptorPool(vulkan_context->device, descriptor_pool, nullptr);
     // Shutdown ImGui
@@ -36,11 +37,13 @@ Vol::ImGuiContext::~ImGuiContext() {
     ImGui::DestroyContext();
 }
 
-void Vol::ImGuiContext::process_event(SDL_Event *event) {
+void Vol::ImGuiContext::process_event(SDL_Event *event)
+{
     ImGui_ImplSDL3_ProcessEvent(event);
 }
 
-void Vol::ImGuiContext::render() {
+void Vol::ImGuiContext::render()
+{
     VkCommandBuffer command_buffer =
         vulkan_context->command_buffers[vulkan_context->frame_index];
 
@@ -49,11 +52,13 @@ void Vol::ImGuiContext::render() {
     ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
 }
 
-void Vol::ImGuiContext::end_frame() {
+void Vol::ImGuiContext::end_frame()
+{
     ImGui::EndFrame();
 }
 
-void Vol::ImGuiContext::init_backends(SDL_Window *window) {
+void Vol::ImGuiContext::init_backends(SDL_Window *window)
+{
     // Initialize ImGui for SDL3
     ImGui_ImplSDL3_InitForVulkan(window);
 
@@ -71,8 +76,8 @@ void Vol::ImGuiContext::init_backends(SDL_Window *window) {
     };
 
     if (vkCreateDescriptorPool(
-            vulkan_context->device, &pool_create_info, nullptr, &descriptor_pool
-        ) != VK_SUCCESS) {
+            vulkan_context->device, &pool_create_info, nullptr,
+            &descriptor_pool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
     }
 
@@ -126,8 +131,8 @@ void Vol::ImGuiContext::init_backends(SDL_Window *window) {
             .pCommandBuffers = &command_buffer,
         };
         if (vkQueueSubmit(
-                vulkan_context->present_queue, 1, &end_info, VK_NULL_HANDLE
-            ) != VK_SUCCESS) {
+                vulkan_context->present_queue, 1, &end_info, VK_NULL_HANDLE) !=
+            VK_SUCCESS) {
             throw std::runtime_error("Failed to submit fonts command buffer");
         };
 

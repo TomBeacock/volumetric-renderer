@@ -1,15 +1,17 @@
 #include "vulkan_context.h"
 
-#include <SDL_vulkan.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
+#include <glm/glm.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <fstream>
-#include <glm/glm.hpp>
 #include <iostream>
 #include <limits>
 #include <map>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <vector>
@@ -49,7 +51,8 @@ struct Vertex {
     glm::vec2 position;
     glm::vec3 color;
 
-    static VkVertexInputBindingDescription get_binding_description() {
+    static VkVertexInputBindingDescription get_binding_description()
+    {
         return {
             .binding = 0,
             .stride = sizeof(Vertex),
@@ -58,7 +61,8 @@ struct Vertex {
     }
 
     static std::array<VkVertexInputAttributeDescription, 2>
-    get_attribute_descriptions() {
+    get_attribute_descriptions()
+    {
         return {
             VkVertexInputAttributeDescription{
                 .location = 0,
@@ -86,48 +90,41 @@ bool validation_layers_supported();
 
 std::optional<unsigned int> get_physical_device_ranking(
     VkPhysicalDevice device,
-    VkSurfaceKHR surface
-);
+    VkSurfaceKHR surface);
 
 bool is_physical_device_suitable(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 QueueFamilyIndices get_queue_families(
     VkPhysicalDevice device,
-    VkSurfaceKHR surface
-);
+    VkSurfaceKHR surface);
 
 SwapChainSupportDetails get_swap_chain_support(
     VkPhysicalDevice device,
-    VkSurfaceKHR surface
-);
+    VkSurfaceKHR surface);
 
 VkSurfaceFormatKHR select_swap_surface_format(
-    const std::vector<VkSurfaceFormatKHR> &available_formats
-);
+    const std::vector<VkSurfaceFormatKHR> &available_formats);
 
 VkPresentModeKHR select_swap_present_mode(
-    const std::vector<VkPresentModeKHR> &available_present_modes
-);
+    const std::vector<VkPresentModeKHR> &available_present_modes);
 
 VkExtent2D select_swap_extent(
     SDL_Window *window,
-    const VkSurfaceCapabilitiesKHR &capabilities
-);
+    const VkSurfaceCapabilitiesKHR &capabilities);
 
 std::vector<char> read_binary_file(const std::string &filename);
 
 VkShaderModule create_shader_module(
     VkDevice device,
-    const std::vector<char> &code
-);
+    const std::vector<char> &code);
 
 uint32_t find_memory_type(
     VkPhysicalDevice physical_device,
     uint32_t type_filter,
-    VkMemoryPropertyFlags properties
-);
+    VkMemoryPropertyFlags properties);
 
-Vol::VulkanContext::VulkanContext(SDL_Window *window) : window(window) {
+Vol::VulkanContext::VulkanContext(SDL_Window *window) : window(window)
+{
     create_instance();
     create_surface();
     select_physical_device();
@@ -143,7 +140,8 @@ Vol::VulkanContext::VulkanContext(SDL_Window *window) : window(window) {
     create_sync_objects();
 }
 
-Vol::VulkanContext::~VulkanContext() {
+Vol::VulkanContext::~VulkanContext()
+{
     cleanup_swap_chain();
 
     vkDestroyBuffer(device, vertex_buffer, nullptr);
@@ -165,17 +163,16 @@ Vol::VulkanContext::~VulkanContext() {
     vkDestroyInstance(instance, nullptr);
 }
 
-void Vol::VulkanContext::begin_render_pass() {
+void Vol::VulkanContext::begin_render_pass()
+{
     // Wait to start frame
     vkWaitForFences(
-        device, 1, &in_flight_fences[frame_index], VK_TRUE, UINT64_MAX
-    );
+        device, 1, &in_flight_fences[frame_index], VK_TRUE, UINT64_MAX);
 
     // Get image index from swap chain
     VkResult result = vkAcquireNextImageKHR(
         device, swap_chain.handle, UINT64_MAX,
-        image_available_semaphores[frame_index], VK_NULL_HANDLE, &image_index
-    );
+        image_available_semaphores[frame_index], VK_NULL_HANDLE, &image_index);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         recreate_swap_chain();
@@ -216,12 +213,10 @@ void Vol::VulkanContext::begin_render_pass() {
     };
 
     vkCmdBeginRenderPass(
-        command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE
-    );
+        command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(
-        command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline
-    );
+        command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
 
     // Set viewport
     VkViewport viewport = {
@@ -250,7 +245,8 @@ void Vol::VulkanContext::begin_render_pass() {
     vkCmdDraw(command_buffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 }
 
-void Vol::VulkanContext::end_render_pass() {
+void Vol::VulkanContext::end_render_pass()
+{
     VkCommandBuffer command_buffer = command_buffers[frame_index];
 
     // End render pass
@@ -277,8 +273,7 @@ void Vol::VulkanContext::end_render_pass() {
     };
 
     if (vkQueueSubmit(
-            graphics_queue, 1, &submit_info, in_flight_fences[frame_index]
-        )) {
+            graphics_queue, 1, &submit_info, in_flight_fences[frame_index])) {
         throw std::runtime_error("Failed to submit draw command buffer");
     }
 
@@ -307,7 +302,8 @@ void Vol::VulkanContext::end_render_pass() {
     frame_index = (frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void Vol::VulkanContext::recreate_swap_chain() {
+void Vol::VulkanContext::recreate_swap_chain()
+{
     wait_till_idle();
 
     cleanup_swap_chain();
@@ -317,15 +313,18 @@ void Vol::VulkanContext::recreate_swap_chain() {
     create_framebuffers();
 }
 
-void Vol::VulkanContext::wait_till_idle() {
+void Vol::VulkanContext::wait_till_idle()
+{
     vkDeviceWaitIdle(device);
 }
 
-void Vol::VulkanContext::framebuffer_size_changed() {
+void Vol::VulkanContext::framebuffer_size_changed()
+{
     framebuffer_size_dirty = true;
 }
 
-void Vol::VulkanContext::create_instance() {
+void Vol::VulkanContext::create_instance()
+{
     // Check validation layers
     if (enable_validation_layers && !validation_layers_supported()) {
         throw std::runtime_error("Requested validation layer not available");
@@ -368,13 +367,15 @@ void Vol::VulkanContext::create_instance() {
     vkCreateInstance(&create_info, nullptr, &instance);
 }
 
-void Vol::VulkanContext::create_surface() {
+void Vol::VulkanContext::create_surface()
+{
     if (!SDL_Vulkan_CreateSurface(window, instance, &surface)) {
         throw std::runtime_error("Failed to create surface");
     }
 }
 
-void Vol::VulkanContext::select_physical_device() {
+void Vol::VulkanContext::select_physical_device()
+{
     // Query physical device count
     uint32_t device_count;
     vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
@@ -409,7 +410,8 @@ void Vol::VulkanContext::select_physical_device() {
 #endif  // !NDEBUG
 }
 
-void Vol::VulkanContext::create_device() {
+void Vol::VulkanContext::create_device()
+{
     // Get queue indices
     QueueFamilyIndices queue_indices =
         get_queue_families(physical_device, surface);
@@ -458,8 +460,8 @@ void Vol::VulkanContext::create_device() {
 
     // Create device
     if (vkCreateDevice(
-            physical_device, &device_create_info, nullptr, &device
-        ) != VK_SUCCESS) {
+            physical_device, &device_create_info, nullptr, &device) !=
+        VK_SUCCESS) {
         throw std::runtime_error("Failed to create logical device");
     }
 
@@ -468,7 +470,8 @@ void Vol::VulkanContext::create_device() {
     vkGetDeviceQueue(device, *queue_indices.presentation, 0, &present_queue);
 }
 
-void Vol::VulkanContext::create_swap_chain() {
+void Vol::VulkanContext::create_swap_chain()
+{
     SwapChainSupportDetails swap_chain_support =
         get_swap_chain_support(physical_device, surface);
 
@@ -520,8 +523,7 @@ void Vol::VulkanContext::create_swap_chain() {
 
     // Create swap chain
     if (vkCreateSwapchainKHR(
-            device, &create_info, nullptr, &swap_chain.handle
-        ) != VK_SUCCESS) {
+            device, &create_info, nullptr, &swap_chain.handle) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create swap chain");
     }
 
@@ -532,11 +534,11 @@ void Vol::VulkanContext::create_swap_chain() {
     vkGetSwapchainImagesKHR(device, swap_chain.handle, &image_count, nullptr);
     swap_chain.images.resize(image_count);
     vkGetSwapchainImagesKHR(
-        device, swap_chain.handle, &image_count, swap_chain.images.data()
-    );
+        device, swap_chain.handle, &image_count, swap_chain.images.data());
 }
 
-void Vol::VulkanContext::create_image_views() {
+void Vol::VulkanContext::create_image_views()
+{
     swap_chain.image_views.resize(swap_chain.images.size());
 
     VkComponentMapping components = {
@@ -565,14 +567,15 @@ void Vol::VulkanContext::create_image_views() {
         };
 
         if (vkCreateImageView(
-                device, &create_info, nullptr, &swap_chain.image_views[i]
-            ) != VK_SUCCESS) {
+                device, &create_info, nullptr, &swap_chain.image_views[i]) !=
+            VK_SUCCESS) {
             throw std::runtime_error("Failed to create image view");
         }
     }
 }
 
-void Vol::VulkanContext::create_render_pass() {
+void Vol::VulkanContext::create_render_pass()
+{
     // Define color attachment
     VkAttachmentDescription color_attachment = {
         .format = swap_chain.format,
@@ -619,13 +622,14 @@ void Vol::VulkanContext::create_render_pass() {
     };
 
     if (vkCreateRenderPass(
-            device, &render_pass_create_info, nullptr, &render_pass
-        ) != VK_SUCCESS) {
+            device, &render_pass_create_info, nullptr, &render_pass) !=
+        VK_SUCCESS) {
         throw std::runtime_error("Failed to create render pass");
     }
 }
 
-void Vol::VulkanContext::create_graphics_pipeline() {
+void Vol::VulkanContext::create_graphics_pipeline()
+{
     // Read SPIR-V files
     auto vert_code = read_binary_file(RES("shaders/basic_vert.spv"));
     auto frag_code = read_binary_file(RES("shaders/basic_frag.spv"));
@@ -752,8 +756,8 @@ void Vol::VulkanContext::create_graphics_pipeline() {
     };
 
     if (vkCreatePipelineLayout(
-            device, &pipeline_layout_create_info, nullptr, &pipeline_layout
-        ) != VK_SUCCESS) {
+            device, &pipeline_layout_create_info, nullptr, &pipeline_layout) !=
+        VK_SUCCESS) {
         throw std::runtime_error("Failed to create pipeline layout");
     }
 
@@ -776,8 +780,7 @@ void Vol::VulkanContext::create_graphics_pipeline() {
 
     if (vkCreateGraphicsPipelines(
             device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr,
-            &graphics_pipeline
-        ) != VK_SUCCESS) {
+            &graphics_pipeline) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create graphics pipeline");
     }
 
@@ -786,7 +789,8 @@ void Vol::VulkanContext::create_graphics_pipeline() {
     vkDestroyShaderModule(device, frag_module, nullptr);
 }
 
-void Vol::VulkanContext::create_framebuffers() {
+void Vol::VulkanContext::create_framebuffers()
+{
     swap_chain.frame_buffers.resize(swap_chain.image_views.size());
 
     for (size_t i = 0; i < swap_chain.image_views.size(); i++) {
@@ -803,14 +807,15 @@ void Vol::VulkanContext::create_framebuffers() {
 
         // Create framebuffer
         if (vkCreateFramebuffer(
-                device, &create_info, nullptr, &swap_chain.frame_buffers[i]
-            ) != VK_SUCCESS) {
+                device, &create_info, nullptr, &swap_chain.frame_buffers[i]) !=
+            VK_SUCCESS) {
             throw std::runtime_error("Failed to create framebuffer");
         }
     }
 }
 
-void Vol::VulkanContext::create_command_pool() {
+void Vol::VulkanContext::create_command_pool()
+{
     QueueFamilyIndices queue_familiy_indices =
         get_queue_families(physical_device, surface);
 
@@ -828,7 +833,8 @@ void Vol::VulkanContext::create_command_pool() {
     }
 }
 
-void Vol::VulkanContext::create_vertex_buffer() {
+void Vol::VulkanContext::create_vertex_buffer()
+{
     // Define vertex buffer creation info
     VkBufferCreateInfo buffer_create_info = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -854,8 +860,7 @@ void Vol::VulkanContext::create_vertex_buffer() {
         .memoryTypeIndex = find_memory_type(
             physical_device, mem_requirements.memoryTypeBits,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-        ),
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
     };
 
     // Allocate memory
@@ -870,13 +875,13 @@ void Vol::VulkanContext::create_vertex_buffer() {
     // Fill buffer
     void *data;
     vkMapMemory(
-        device, vertex_buffer_memory, 0, buffer_create_info.size, 0, &data
-    );
+        device, vertex_buffer_memory, 0, buffer_create_info.size, 0, &data);
     memcpy(data, vertices.data(), static_cast<size_t>(buffer_create_info.size));
     vkUnmapMemory(device, vertex_buffer_memory);
 }
 
-void Vol::VulkanContext::allocate_command_buffers() {
+void Vol::VulkanContext::allocate_command_buffers()
+{
     command_buffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     // Define command buffer allocation information
@@ -889,13 +894,13 @@ void Vol::VulkanContext::allocate_command_buffers() {
 
     // Allocate command buffer
     if (vkAllocateCommandBuffers(
-            device, &allocation_info, command_buffers.data()
-        ) != VK_SUCCESS) {
+            device, &allocation_info, command_buffers.data()) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate command buffer");
     }
 }
 
-void Vol::VulkanContext::create_sync_objects() {
+void Vol::VulkanContext::create_sync_objects()
+{
     image_available_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
     render_finished_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
     in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -914,18 +919,16 @@ void Vol::VulkanContext::create_sync_objects() {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         if (vkCreateSemaphore(
                 device, &semaphore_create_info, nullptr,
-                &image_available_semaphores[i]
-            ) != VK_SUCCESS ||
+                &image_available_semaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(
                 device, &semaphore_create_info, nullptr,
-                &render_finished_semaphores[i]
-            ) != VK_SUCCESS) {
+                &render_finished_semaphores[i]) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create semaphores");
         }
 
         if (vkCreateFence(
-                device, &fence_create_info, nullptr, &in_flight_fences[i]
-            ) != VK_SUCCESS) {
+                device, &fence_create_info, nullptr, &in_flight_fences[i]) !=
+            VK_SUCCESS) {
             throw std::runtime_error("Failed to create fence");
         }
     }
@@ -933,8 +936,8 @@ void Vol::VulkanContext::create_sync_objects() {
 
 void Vol::VulkanContext::record_command_buffer(
     VkCommandBuffer command_buffer,
-    uint32_t image_index
-) {
+    uint32_t image_index)
+{
     // Define command buffer begin information
     VkCommandBufferBeginInfo begin_info = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -960,12 +963,10 @@ void Vol::VulkanContext::record_command_buffer(
     };
 
     vkCmdBeginRenderPass(
-        command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE
-    );
+        command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(
-        command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline
-    );
+        command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
 
     // Set viewport
     VkViewport viewport = {
@@ -1002,7 +1003,8 @@ void Vol::VulkanContext::record_command_buffer(
     }
 }
 
-void Vol::VulkanContext::cleanup_swap_chain() {
+void Vol::VulkanContext::cleanup_swap_chain()
+{
     for (auto framebuffer : swap_chain.frame_buffers) {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
@@ -1013,15 +1015,15 @@ void Vol::VulkanContext::cleanup_swap_chain() {
     vkDestroySwapchainKHR(device, swap_chain.handle, nullptr);
 }
 
-bool validation_layers_supported() {
+bool validation_layers_supported()
+{
     // Query and retrieve available layers
     uint32_t available_layer_count;
     vkEnumerateInstanceLayerProperties(&available_layer_count, nullptr);
 
     std::vector<VkLayerProperties> available_layers(available_layer_count);
     vkEnumerateInstanceLayerProperties(
-        &available_layer_count, available_layers.data()
-    );
+        &available_layer_count, available_layers.data());
 
     // Compare requested validation layers with available layers
     for (const char *validation_layer_name : validation_layers) {
@@ -1041,8 +1043,8 @@ bool validation_layers_supported() {
 
 std::optional<unsigned int> get_physical_device_ranking(
     VkPhysicalDevice device,
-    VkSurfaceKHR surface
-) {
+    VkSurfaceKHR surface)
+{
     // Check if device is suitable
     if (!is_physical_device_suitable(device, surface)) {
         return std::nullopt;
@@ -1066,10 +1068,8 @@ std::optional<unsigned int> get_physical_device_ranking(
     return score;
 }
 
-bool is_physical_device_suitable(
-    VkPhysicalDevice device,
-    VkSurfaceKHR surface
-) {
+bool is_physical_device_suitable(VkPhysicalDevice device, VkSurfaceKHR surface)
+{
     // Check device support required queue families
     if (!get_queue_families(device, surface).is_complete()) {
         return false;
@@ -1078,17 +1078,14 @@ bool is_physical_device_suitable(
     // Check device extension support
     uint32_t extension_count;
     vkEnumerateDeviceExtensionProperties(
-        device, nullptr, &extension_count, nullptr
-    );
+        device, nullptr, &extension_count, nullptr);
     std::vector<VkExtensionProperties> extensions_props(extension_count);
     vkEnumerateDeviceExtensionProperties(
-        device, nullptr, &extension_count, extensions_props.data()
-    );
+        device, nullptr, &extension_count, extensions_props.data());
 
     std::set<std::string> required_extensions(
         required_physical_device_extensions.begin(),
-        required_physical_device_extensions.end()
-    );
+        required_physical_device_extensions.end());
 
     for (const auto &extension_props : extensions_props) {
         required_extensions.erase(extension_props.extensionName);
@@ -1111,16 +1108,15 @@ bool is_physical_device_suitable(
 
 QueueFamilyIndices get_queue_families(
     VkPhysicalDevice device,
-    VkSurfaceKHR surface
-) {
+    VkSurfaceKHR surface)
+{
     // Query and retrieve queue information
     uint32_t queue_count;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_count, nullptr);
 
     std::vector<VkQueueFamilyProperties> queue_props(queue_count);
     vkGetPhysicalDeviceQueueFamilyProperties(
-        device, &queue_count, queue_props.data()
-    );
+        device, &queue_count, queue_props.data());
 
     // Scan queues
     QueueFamilyIndices queue_indices{};
@@ -1136,8 +1132,7 @@ QueueFamilyIndices get_queue_families(
         if (!queue_indices.presentation) {
             VkBool32 present_support;
             vkGetPhysicalDeviceSurfaceSupportKHR(
-                device, i, surface, &present_support
-            );
+                device, i, surface, &present_support);
             if (present_support) {
                 queue_indices.presentation = i;
             }
@@ -1157,44 +1152,39 @@ QueueFamilyIndices get_queue_families(
 
 SwapChainSupportDetails get_swap_chain_support(
     VkPhysicalDevice device,
-    VkSurfaceKHR surface
-) {
+    VkSurfaceKHR surface)
+{
     SwapChainSupportDetails support_details{};
 
     // Get capabilities
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-        device, surface, &support_details.capabilities
-    );
+        device, surface, &support_details.capabilities);
 
     // Get supported formats
     uint32_t format_count;
     vkGetPhysicalDeviceSurfaceFormatsKHR(
-        device, surface, &format_count, nullptr
-    );
+        device, surface, &format_count, nullptr);
 
     support_details.formats.resize(format_count);
     vkGetPhysicalDeviceSurfaceFormatsKHR(
-        device, surface, &format_count, support_details.formats.data()
-    );
+        device, surface, &format_count, support_details.formats.data());
 
     // Get present modes
     uint32_t present_mode_count;
     vkGetPhysicalDeviceSurfacePresentModesKHR(
-        device, surface, &present_mode_count, nullptr
-    );
+        device, surface, &present_mode_count, nullptr);
 
     support_details.present_modes.resize(present_mode_count);
     vkGetPhysicalDeviceSurfacePresentModesKHR(
         device, surface, &present_mode_count,
-        support_details.present_modes.data()
-    );
+        support_details.present_modes.data());
 
     return support_details;
 }
 
 VkSurfaceFormatKHR select_swap_surface_format(
-    const std::vector<VkSurfaceFormatKHR> &available_formats
-) {
+    const std::vector<VkSurfaceFormatKHR> &available_formats)
+{
     for (const auto &available_format : available_formats) {
         if (available_format.format == VK_FORMAT_B8G8R8A8_SRGB &&
             available_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -1205,8 +1195,8 @@ VkSurfaceFormatKHR select_swap_surface_format(
 }
 
 VkPresentModeKHR select_swap_present_mode(
-    const std::vector<VkPresentModeKHR> &available_present_modes
-) {
+    const std::vector<VkPresentModeKHR> &available_present_modes)
+{
     for (const auto &available_present_mode : available_present_modes) {
         if (available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
             return available_present_mode;
@@ -1217,8 +1207,8 @@ VkPresentModeKHR select_swap_present_mode(
 
 VkExtent2D select_swap_extent(
     SDL_Window *window,
-    const VkSurfaceCapabilitiesKHR &capabilities
-) {
+    const VkSurfaceCapabilitiesKHR &capabilities)
+{
     // Check if current extent is acceptable
     if (capabilities.currentExtent.width !=
         std::numeric_limits<uint32_t>::max()) {
@@ -1236,17 +1226,16 @@ VkExtent2D select_swap_extent(
 
     extent.width = std::clamp(
         extent.width, capabilities.minImageExtent.width,
-        capabilities.maxImageExtent.width
-    );
+        capabilities.maxImageExtent.width);
     extent.height = std::clamp(
         extent.height, capabilities.minImageExtent.height,
-        capabilities.maxImageExtent.height
-    );
+        capabilities.maxImageExtent.height);
 
     return extent;
 }
 
-std::vector<char> read_binary_file(const std::string &filename) {
+std::vector<char> read_binary_file(const std::string &filename)
+{
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
     if (!file.is_open()) {
@@ -1266,8 +1255,8 @@ std::vector<char> read_binary_file(const std::string &filename) {
 
 VkShaderModule create_shader_module(
     VkDevice device,
-    const std::vector<char> &code
-) {
+    const std::vector<char> &code)
+{
     // Define shader module creation information
     VkShaderModuleCreateInfo create_info = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -1288,8 +1277,8 @@ VkShaderModule create_shader_module(
 uint32_t find_memory_type(
     VkPhysicalDevice physical_device,
     uint32_t type_filter,
-    VkMemoryPropertyFlags properties
-) {
+    VkMemoryPropertyFlags properties)
+{
     VkPhysicalDeviceMemoryProperties memory_props;
     vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_props);
 

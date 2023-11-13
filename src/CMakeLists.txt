@@ -10,12 +10,18 @@ endif()
 
 add_executable(${PROJECT_NAME} ${OPTIONS}
 	"main.cpp"
+	"application.h" "application.cpp"
 	"vulkan_context.h" "vulkan_context.cpp"
 	"imgui_context.h" "imgui_context.cpp"
-	"ui.h" "ui.cpp"
-)
+	"ui/ui_context.h" "ui/ui_context.cpp"
+	"ui/main_window.h" "ui/main_window.cpp"
+	"data/dataset.h"
+	"data/file_parser.h" "data/file_parser.cpp"
+	"data/importer.h" "data/importer.cpp"
+  "ui/error_popup.h" "ui/error_popup.cpp")
 target_link_libraries(${PROJECT_NAME} PRIVATE extern)
+target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE RES_PATH="${CMAKE_SOURCE_DIR}/res/")
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
