@@ -1,10 +1,11 @@
 #pragma once
 
+#include <filesystem>
+#include <optional>
 #include <string>
 
-#include "raw_importer.h"
-
-namespace Vol::UI {
+namespace Vol::UI
+{
 class MainWindow {
   public:
     void update();
@@ -23,11 +24,11 @@ class MainWindow {
         float *v,
         float v_min,
         float v_max,
-        const std::string &hint
-    );
+        const std::string &hint);
+
+    std::optional<std::filesystem::path> open_file_dialog() const;
 
   private:
     std::string status_text;
-    RawImporter raw_importer;
 };
 }  // namespace Vol::UI

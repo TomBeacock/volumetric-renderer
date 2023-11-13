@@ -6,7 +6,8 @@
 #include <imgui_internal.h>
 #include <nfd.h>
 
-Vol::UI::UIContext::UIContext() {
+Vol::UI::UIContext::UIContext()
+{
     // Set style
     ImGuiStyle &style = ImGui::GetStyle();
 
@@ -36,7 +37,8 @@ Vol::UI::UIContext::UIContext() {
         ImVec4(0.00802f, 0.00857f, 0.00913f, 1.0f);
 }
 
-void Vol::UI::UIContext::update() {
+void Vol::UI::UIContext::update()
+{
     // Begin ImGui frame
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL3_NewFrame();
@@ -44,7 +46,15 @@ void Vol::UI::UIContext::update() {
 
     // Update content
     main_window.update();
+    error_popup.update();
 
     // Display demo window
     ImGui::ShowDemoWindow((bool *)0);
+}
+
+void Vol::UI::UIContext::show_error(
+    const std::string &title,
+    const std::string &message)
+{
+    error_popup.show(title, message);
 }

@@ -5,9 +5,13 @@
 struct SDL_Window;
 union SDL_Event;
 
-namespace Vol {
+namespace Vol
+{
 class VulkanContext;
+}
 
+namespace Vol
+{
 class ImGuiContext {
   public:
     explicit ImGuiContext(SDL_Window *window, VulkanContext *vulkan_context);

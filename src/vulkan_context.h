@@ -1,16 +1,13 @@
 #pragma once
 
-#include <SDL3/SDL.h>
 #include <vulkan/vulkan.h>
 
-#include <optional>
 #include <vector>
 
-struct ImDrawData;
+struct SDL_Window;
 
-namespace Vol {
-class ImGuiContext;
-
+namespace Vol
+{
 class VulkanContext {
     friend class ImGuiContext;
 
@@ -51,8 +48,7 @@ class VulkanContext {
 
     void record_command_buffer(
         VkCommandBuffer command_buffer,
-        uint32_t image_index
-    );
+        uint32_t image_index);
 
     void cleanup_swap_chain();
 

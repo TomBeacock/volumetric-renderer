@@ -1,24 +1,27 @@
 #include "main_window.h"
 
+#include "application.h"
+#include "data/file_parser.h"
+#include "data/importer.h"
+#include "ui_context.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <nfd.h>
 
-#include "ui_context.h"
-
-void Vol::UI::MainWindow::update() {
+void Vol::UI::MainWindow::update()
+{
     // Update content
     update_main_menu_bar();
     update_status_bar();
     update_main_window();
-
-    raw_importer.update();
 }
 
-void Vol::UI::MainWindow::update_main_menu_bar() {
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 6.0f));
+void Vol::UI::MainWindow::update_main_menu_bar()
+{
+    bool should_import = false;
 
-    bool open_raw_importer = false;
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 6.0f));
 
     // Main menu bar
     if (ImGui::BeginMainMenuBar()) {
@@ -26,10 +29,8 @@ void Vol::UI::MainWindow::update_main_menu_bar() {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
         if (ImGui::BeginMenu("File")) {
             // Open file menu item
-            if (ImGui::BeginMenu("Import")) {
-                open_raw_importer = ImGui::MenuItem("Raw (.raw)");
-                set_status_text_on_hover("Import a raw (.raw) file");
-                ImGui::EndMenu();
+            if (ImGui::MenuItem("Import...")) {
+                should_import = true;
             }
             set_status_text_on_hover("Import a volumetric dataset from a file");
 
@@ -58,18 +59,20 @@ void Vol::UI::MainWindow::update_main_menu_bar() {
 
     ImGui::PopStyleVar();
 
-    if (open_raw_importer) {
-        ImGui::OpenPopup("Import Raw");
+    if (should_import) {
+        if (auto filepath = open_file_dialog()) {
+            Application::main().get_importer().import(*filepath);
+        }
     }
 }
 
-void Vol::UI::MainWindow::update_status_bar() {
+void Vol::UI::MainWindow::update_status_bar()
+{
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 6.0f));
 
     if (ImGui::BeginViewportSideBar(
             "statusbar", nullptr, ImGuiDir_Down, ImGui::GetFrameHeight(),
-            ImGuiWindowFlags_NoDecoration
-        )) {
+            ImGuiWindowFlags_NoDecoration)) {
         ImGui::AlignTextToFramePadding();
         ImGui::Text(status_text.c_str());
     }
@@ -80,7 +83,8 @@ void Vol::UI::MainWindow::update_status_bar() {
     status_text = "";
 }
 
-void Vol::UI::MainWindow::update_main_window() {
+void Vol::UI::MainWindow::update_main_window()
+{
     // Create main window
     const ImGuiViewport *viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -100,7 +104,8 @@ void Vol::UI::MainWindow::update_main_window() {
     ImGui::End();
 }
 
-void Vol::UI::MainWindow::update_viewport() {
+void Vol::UI::MainWindow::update_viewport()
+{
     // Push child style
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.11f, 0.11f, 0.11f, 1.0f));
 
@@ -117,15 +122,15 @@ void Vol::UI::MainWindow::update_viewport() {
     ImGui::PopStyleColor();
 }
 
-void Vol::UI::MainWindow::update_controls() {
+void Vol::UI::MainWindow::update_controls()
+{
     // Push child style
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
 
     // Begin child
     if (ImGui::BeginChild(
             "controls", ImVec2(0.0f, 0.0f),
-            ImGuiChildFlags_AlwaysUseWindowPadding
-        )) {
+            ImGuiChildFlags_AlwaysUseWindowPadding)) {
         // Create child content
         ImFont *heading_font = ImGui::GetIO().Fonts->Fonts[1];
         ImGui::PushFont(heading_font);
@@ -139,23 +144,18 @@ void Vol::UI::MainWindow::update_controls() {
         static float brightness = 0.0f, contrast = 0.0f;
         if (ImGui::BeginTable("display_controls", 3)) {
             ImGui::TableSetupColumn(
-                "label_col", ImGuiTableColumnFlags_WidthFixed, 100.0f
-            );
+                "label_col", ImGuiTableColumnFlags_WidthFixed, 100.0f);
             ImGui::TableSetupColumn(
-                "slider_col", ImGuiTableColumnFlags_WidthFixed, 200.0f
-            );
+                "slider_col", ImGuiTableColumnFlags_WidthFixed, 200.0f);
             ImGui::TableSetupColumn(
-                "field_col", ImGuiTableColumnFlags_WidthFixed, 100.0f
-            );
+                "field_col", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 
             slider(
                 "Brightness", &brightness, 0.0f, 100.0f,
-                "Adjust visualization brightness"
-            );
+                "Adjust visualization brightness");
             slider(
                 "Contrast", &contrast, 0.0f, 100.0f,
-                "Adjust visualization contrast"
-            );
+                "Adjust visualization contrast");
         }
         ImGui::EndTable();
 
@@ -169,7 +169,8 @@ void Vol::UI::MainWindow::update_controls() {
     ImGui::PopStyleVar();
 }
 
-void Vol::UI::MainWindow::set_status_text_on_hover(const std::string &text) {
+void Vol::UI::MainWindow::set_status_text_on_hover(const std::string &text)
+{
     if (ImGui::IsItemHovered()) {
         status_text = text;
     }
@@ -180,8 +181,8 @@ void Vol::UI::MainWindow::slider(
     float *v,
     float v_min,
     float v_max,
-    const std::string &hint
-) {
+    const std::string &hint)
+{
     ImGui::TableNextRow();
 
     ImGui::TableSetColumnIndex(0);
@@ -202,4 +203,17 @@ void Vol::UI::MainWindow::slider(
     ImGui::InputFloat(input_label.c_str(), v, 0.0f, 0.0f, "%.1f");
     set_status_text_on_hover(hint);
     ImGui::PopStyleVar();
+}
+
+std::optional<std::filesystem::path> Vol::UI::MainWindow::open_file_dialog()
+    const
+{
+    nfdchar_t *out_path;
+    nfdfilteritem_t filter_items[1] = {{"Nearly Raw Raster Data", "nffd,ndhr"}};
+    if (NFD_OpenDialog(&out_path, filter_items, 1, nullptr) == NFD_OKAY) {
+        std::filesystem::path path(out_path);
+        NFD_FreePath(out_path);
+        return path;
+    }
+    return std::nullopt;
 }

@@ -3,9 +3,19 @@ BasedOnStyle: Chromium
 ---
 Language: Cpp
 AccessModifierOffset: -2
-AlignAfterOpenBracket: BlockIndent
+AlignAfterOpenBracket: AlwaysBreak
 AllowShortCaseLabelsOnASingleLine: true
+BraceWrapping:
+  AfterFunction: true
+  AfterNamespace: true
+BreakBeforeBraces: Custom
 IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '<([A-Za-z0-9\Q/-_\E])+>'
+    Priority: 3
+  - Regex: '<([A-Za-z0-9.\Q/-_\E])+>'
+    Priority: 2
+  - Regex: '"([A-Za-z0-9.\Q/-_\E])+"'
+    Priority: 1
 IndentWidth: 4
-PenaltyReturnTypeOnItsOwnLine: 1000
 PointerAlignment: Right
