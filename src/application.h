@@ -8,6 +8,11 @@ class VulkanContext;
 class ImGuiContext;
 }  // namespace Vol
 
+namespace Vol::Rendering
+{
+class VulkanContext;
+}
+
 namespace Vol::UI
 {
 class UIContext;
@@ -27,6 +32,11 @@ class Application {
 
     int run();
 
+    inline Rendering::VulkanContext &get_vulkan_context() const
+    {
+        return *vulkan_context;
+    }
+    inline ImGuiContext &get_imgui_context() const { return *imgui_context; }
     inline const Data::Importer &get_importer() const { return *importer; };
     inline UI::UIContext &get_ui() { return *ui_context; }
 
@@ -36,7 +46,7 @@ class Application {
   private:
     bool running;
     SDL_Window *window;
-    VulkanContext *vulkan_context;
+    Rendering::VulkanContext *vulkan_context;
     ImGuiContext *imgui_context;
     UI::UIContext *ui_context;
     Data::Importer *importer;

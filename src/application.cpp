@@ -2,8 +2,9 @@
 
 #include "data/importer.h"
 #include "imgui_context.h"
+#include "rendering/main_pass.h"
+#include "rendering/vulkan_context.h"
 #include "ui/ui_context.h"
-#include "vulkan_context.h"
 
 #include <SDL3/SDL.h>
 #include <nfd.h>
@@ -31,7 +32,7 @@ Vol::Application::Application()
                           SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_MAXIMIZED);
     SDL_Window *window = SDL_CreateWindow("Template", 1280, 720, window_flags);
 
-    vulkan_context = new VulkanContext(window);
+    vulkan_context = new Rendering::VulkanContext(window);
     imgui_context = new ImGuiContext(window, vulkan_context);
     ui_context = new UI::UIContext();
     importer = new Data::Importer();
@@ -60,7 +61,7 @@ int Vol::Application::run()
             imgui_context->process_event(&e);
             switch (e.type) {
                 case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
-                    vulkan_context->framebuffer_size_changed();
+                    vulkan_context->get_main_pass()->framebuffer_size_changed();
                     break;
                 }
                 case SDL_EVENT_QUIT: {
@@ -76,9 +77,7 @@ int Vol::Application::run()
         // Render frame
         bool minimized = SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED;
         if (!minimized) {
-            vulkan_context->begin_render_pass();
-            imgui_context->render();
-            vulkan_context->end_render_pass();
+            vulkan_context->render();
         } else {
             imgui_context->end_frame();
         }

@@ -3,11 +3,55 @@
 #include "application.h"
 #include "data/file_parser.h"
 #include "data/importer.h"
-#include "ui_context.h"
+#include "imgui_context.h"
+#include "rendering/offscreen_pass.h"
+#include "rendering/vulkan_context.h"
+#include "ui/ui_context.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <nfd.h>
+
+namespace ImGui
+{
+void ImageRounded(
+    ImTextureID user_texture_id,
+    const ImVec2 &size,
+    const ImVec2 &uv0 = ImVec2(0, 0),
+    const ImVec2 &uv1 = ImVec2(1, 1),
+    const ImVec4 &tint_col = ImVec4(1, 1, 1, 1),
+    const ImVec4 &border_col = ImVec4(0, 0, 0, 0),
+    float rounding = 0.0f)
+{
+    ImGuiWindow *window = GetCurrentWindow();
+    if (window->SkipItems)
+        return;
+
+    ImRect bb(
+        window->DC.CursorPos,
+        ImVec2(
+            window->DC.CursorPos.x + size.x, window->DC.CursorPos.y + size.y));
+    if (border_col.w > 0.0f) {
+        bb.Max = ImVec2(bb.Max.x + 2, bb.Max.y + 2);
+    }
+    ItemSize(bb);
+    if (!ItemAdd(bb, 0))
+        return;
+
+    if (border_col.w > 0.0f) {
+        window->DrawList->AddRect(
+            bb.Min, bb.Max, GetColorU32(border_col), 0.0f);
+        window->DrawList->AddImageRounded(
+            user_texture_id, ImVec2(bb.Min.x + 1, bb.Min.y + 1),
+            ImVec2(bb.Max.x - 1, bb.Max.y - 1), uv0, uv1, GetColorU32(tint_col),
+            rounding);
+    } else {
+        window->DrawList->AddImageRounded(
+            user_texture_id, bb.Min, bb.Max, uv0, uv1, GetColorU32(tint_col),
+            rounding);
+    }
+}
+}  // namespace ImGui
 
 void Vol::UI::MainWindow::update()
 {
@@ -106,20 +150,31 @@ void Vol::UI::MainWindow::update_main_window()
 
 void Vol::UI::MainWindow::update_viewport()
 {
-    // Push child style
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.11f, 0.11f, 0.11f, 1.0f));
-
     // Begin child
     const ImGuiViewport *viewport = ImGui::GetMainViewport();
     float viewport_width = viewport->WorkSize.x - 400.0f;
     if (ImGui::BeginChild("viewport", ImVec2(viewport_width, 0.0f))) {
+        ImVec2 viewport_size = ImGui::GetWindowSize();
+        uint32_t width = static_cast<uint32_t>(viewport_size.x),
+                 height = static_cast<uint32_t>(viewport_size.y);
+        if (width != viewport_width || height != viewport_height) {
+            viewport_width = width;
+            viewport_height = height;
+            Application::main().get_imgui_context().recreate_viewport_texture(
+                viewport_width, viewport_height);
+        }
+        ImTextureID texture = static_cast<ImTextureID>(
+            Application::main().get_imgui_context().get_descriptor());
+
+        ImGuiStyle &style = ImGui::GetStyle();
+        ImGui::ImageRounded(
+            texture, viewport_size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f),
+            ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 0.0f),
+            style.ChildRounding);
     }
 
     // End child
     ImGui::EndChild();
-
-    // Pop child style
-    ImGui::PopStyleColor();
 }
 
 void Vol::UI::MainWindow::update_controls()

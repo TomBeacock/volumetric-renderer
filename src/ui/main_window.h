@@ -1,5 +1,7 @@
 #pragma once
 
+#include "imgui.h"
+
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -29,6 +31,7 @@ class MainWindow {
     std::optional<std::filesystem::path> open_file_dialog() const;
 
   private:
-    std::string status_text;
+    std::string status_text = "";
+    uint32_t viewport_width = 0, viewport_height = 0;
 };
 }  // namespace Vol::UI

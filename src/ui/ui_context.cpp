@@ -49,7 +49,7 @@ void Vol::UI::UIContext::update()
     error_popup.update();
 
     // Display demo window
-    ImGui::ShowDemoWindow((bool *)0);
+    // ImGui::ShowDemoWindow((bool *)0);
 }
 
 void Vol::UI::UIContext::show_error(
