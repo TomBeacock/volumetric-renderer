@@ -32,6 +32,7 @@ class MainPass {
 
     inline const SwapChain &get_swap_chain() const { return swap_chain; }
     inline VkRenderPass get_render_pass() const { return render_pass; }
+    inline uint32_t get_frame_index() const { return frame_index; }
 
   private:
     void create_swap_chain();

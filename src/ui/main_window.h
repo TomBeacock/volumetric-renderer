@@ -2,6 +2,8 @@
 
 #include "imgui.h"
 
+#include <glm/glm.hpp>
+
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -32,6 +34,6 @@ class MainWindow {
 
   private:
     std::string status_text = "";
-    uint32_t viewport_width = 0, viewport_height = 0;
+    glm::u32vec2 current_scene_window_size;
 };
 }  // namespace Vol::UI

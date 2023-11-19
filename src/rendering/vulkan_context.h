@@ -14,6 +14,8 @@ class OffscreenPass;
 
 namespace Vol::Rendering
 {
+constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+
 class VulkanContext {
   public:
     explicit VulkanContext(SDL_Window *window);
