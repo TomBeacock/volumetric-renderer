@@ -2,6 +2,7 @@
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
+#include "data/dataset.h"
 #include "rendering/main_pass.h"
 #include "rendering/util.h"
 #include "rendering/vulkan_context.h"
@@ -18,6 +19,7 @@
 
 struct Vertex {
     glm::vec3 position;
+    glm::vec3 tex_coord;
 
     static VkVertexInputBindingDescription get_binding_description()
     {
@@ -28,49 +30,57 @@ struct Vertex {
         };
     }
 
-    static std::array<VkVertexInputAttributeDescription, 1>
+    static std::array<VkVertexInputAttributeDescription, 2>
     get_attribute_descriptions()
     {
-        return {VkVertexInputAttributeDescription{
-            .location = 0,
-            .binding = 0,
-            .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(Vertex, position),
-        }};
+        return {
+            VkVertexInputAttributeDescription{
+                .location = 0,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = offsetof(Vertex, position),
+            },
+            VkVertexInputAttributeDescription{
+                .location = 1,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = offsetof(Vertex, tex_coord),
+            },
+        };
     }
 };
 
 const std::vector<Vertex> vertices = {
     // Top
-    {{-0.5f, -0.5f, 0.5f}},
-    {{0.5f, -0.5f, 0.5f}},
-    {{0.5f, 0.5f, 0.5f}},
-    {{-0.5f, 0.5f, 0.5f}},
+    {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
+    {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 1.0f}},
     // Front
-    {{-0.5f, -0.5f, -0.5f}},
-    {{0.5f, -0.5f, -0.5f}},
-    {{0.5f, -0.5f, 0.5f}},
-    {{-0.5f, -0.5f, 0.5f}},
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
+    {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
     // Right
-    {{0.5f, -0.5f, -0.5f}},
-    {{0.5f, 0.5f, -0.5f}},
-    {{0.5f, 0.5f, 0.5f}},
-    {{0.5f, -0.5f, 0.5f}},
+    {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+    {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
     // Back
-    {{0.5f, 0.5f, -0.5f}},
-    {{-0.5f, 0.5f, -0.5f}},
-    {{-0.5f, 0.5f, 0.5f}},
-    {{0.5f, 0.5f, 0.5f}},
+    {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 1.0f}},
+    {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
     // Left
-    {{-0.5f, 0.5f, -0.5f}},
-    {{-0.5f, -0.5f, -0.5f}},
-    {{-0.5f, -0.5f, 0.5f}},
-    {{-0.5f, 0.5f, 0.5f}},
+    {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}},
+    {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 1.0f}},
     // Bottom
-    {{-0.5f, 0.5f, -0.5f}},
-    {{0.5f, 0.5f, -0.5f}},
-    {{0.5f, -0.5f, -0.5f}},
-    {{-0.5f, -0.5f, -0.5f}},
+    {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 0.0f}},
+    {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}},
 };
 
 const std::vector<uint16_t> indices = {
@@ -103,6 +113,8 @@ Vol::Rendering::OffscreenPass::OffscreenPass(
     uint32_t height)
     : context(context), width(width), height(height)
 {
+    Vol::Data::Dataset temp_volume{{1, 1, 1}, {1.0f}};
+
     create_color_attachment();
     create_depth_attachment();
     create_render_pass();
@@ -112,6 +124,7 @@ Vol::Rendering::OffscreenPass::OffscreenPass(
     create_vertex_buffer();
     create_index_buffer();
     create_uniform_buffers();
+    create_volume(temp_volume);
     create_descriptor_pool();
     create_descriptor_sets();
 }
@@ -128,6 +141,8 @@ Vol::Rendering::OffscreenPass::~OffscreenPass()
         vkDestroyBuffer(context->get_device(), uniform_buffers[i], nullptr);
         vkFreeMemory(context->get_device(), uniform_buffers_memory[i], nullptr);
     }
+
+    destroy_volume();
 
     vkDestroyDescriptorPool(context->get_device(), descriptor_pool, nullptr);
     vkDestroyDescriptorSetLayout(
@@ -232,6 +247,17 @@ void Vol::Rendering::OffscreenPass::framebuffer_size_changed(
     create_color_attachment();
     create_depth_attachment();
     create_framebuffer();
+}
+
+void Vol::Rendering::OffscreenPass::volume_dataset_changed(
+    Vol::Data::Dataset &dataset)
+{
+    context->wait_till_idle();
+
+    destroy_volume();
+    create_volume(dataset);
+
+    update_descriptor_sets();
 }
 
 void Vol::Rendering::OffscreenPass::create_color_attachment()
@@ -519,18 +545,29 @@ void Vol::Rendering::OffscreenPass::create_framebuffer()
 
 void Vol::Rendering::OffscreenPass::create_descriptor_set_layout()
 {
-    VkDescriptorSetLayoutBinding layout_binding = {
-        .binding = 0,
-        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = 1,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-        .pImmutableSamplers = nullptr,
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
+        // Uniform buffer
+        VkDescriptorSetLayoutBinding{
+            .binding = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .pImmutableSamplers = nullptr,
+        },
+        // Volume texture
+        VkDescriptorSetLayoutBinding{
+            .binding = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = nullptr,
+        },
     };
 
     VkDescriptorSetLayoutCreateInfo layout_create_info = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .bindingCount = 1,
-        .pBindings = &layout_binding,
+        .bindingCount = static_cast<uint32_t>(bindings.size()),
+        .pBindings = bindings.data(),
     };
 
     if (vkCreateDescriptorSetLayout(
@@ -810,16 +847,22 @@ void Vol::Rendering::OffscreenPass::create_uniform_buffers()
 
 void Vol::Rendering::OffscreenPass::create_descriptor_pool()
 {
-    VkDescriptorPoolSize pool_size = {
-        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+    std::array<VkDescriptorPoolSize, 2> pool_sizes{
+        VkDescriptorPoolSize{
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+        },
+        VkDescriptorPoolSize{
+            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+        },
     };
 
     VkDescriptorPoolCreateInfo create_info = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .maxSets = MAX_FRAMES_IN_FLIGHT,
-        .poolSizeCount = 1,
-        .pPoolSizes = &pool_size,
+        .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
+        .pPoolSizes = pool_sizes.data(),
     };
 
     if (vkCreateDescriptorPool(
@@ -849,26 +892,114 @@ void Vol::Rendering::OffscreenPass::create_descriptor_sets()
         throw std::runtime_error("Failed to allocate descriptor sets");
     }
 
-    // Write descriptor sets
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        VkDescriptorBufferInfo buffer_info = {
-            .buffer = uniform_buffers[i],
-            .offset = 0,
-            .range = sizeof(Transformations),
-        };
+    update_descriptor_sets();
+}
 
-        VkWriteDescriptorSet descriptor_write = {
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = descriptor_sets[i],
-            .dstBinding = 0,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .pBufferInfo = &buffer_info,
-        };
+void Vol::Rendering::OffscreenPass::create_volume(Vol::Data::Dataset &dataset)
+{
+    create_volume_image(dataset);
+    create_volume_image_view();
+    create_volume_sampler();
+}
 
-        vkUpdateDescriptorSets(
-            context->get_device(), 1, &descriptor_write, 0, nullptr);
+void Vol::Rendering::OffscreenPass::create_volume_image(
+    Vol::Data::Dataset &dataset)
+{
+    VkDeviceSize size = sizeof(float) * dataset.data.size();
+
+    // Create staging buffer
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
+    create_buffer(
+        size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        staging_buffer, staging_buffer_memory);
+
+    // Copy data to staging buffer
+    void *data;
+    vkMapMemory(
+        context->get_device(), staging_buffer_memory, 0, size, 0, &data);
+    memcpy(data, dataset.data.data(), static_cast<size_t>(size));
+    vkUnmapMemory(context->get_device(), staging_buffer_memory);
+
+    // Create image
+    VkExtent3D extent = {
+        .width = dataset.dimensions.x,
+        .height = dataset.dimensions.y,
+        .depth = dataset.dimensions.z,
+    };
+    create_image(
+        VK_IMAGE_TYPE_3D, VK_FORMAT_R32_SFLOAT, extent, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, volume_image, volume_image_memory);
+
+    // Transition layout
+    transition_image_layout(
+        volume_image, VK_FORMAT_R32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    // Copy buffer
+    copy_buffer_to_image(staging_buffer, volume_image, extent);
+
+    // Transition layout
+    transition_image_layout(
+        volume_image, VK_FORMAT_R32_SFLOAT,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    // Destroy staging buffer
+    vkDestroyBuffer(context->get_device(), staging_buffer, nullptr);
+    vkFreeMemory(context->get_device(), staging_buffer_memory, nullptr);
+}
+
+void Vol::Rendering::OffscreenPass::create_volume_image_view()
+{
+    VkImageViewCreateInfo create_info{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = volume_image,
+        .viewType = VK_IMAGE_VIEW_TYPE_3D,
+        .format = VK_FORMAT_R32_SFLOAT,
+        .subresourceRange =
+            VkImageSubresourceRange{
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+    };
+
+    if (vkCreateImageView(
+            context->get_device(), &create_info, nullptr, &volume_image_view)) {
+        throw std::runtime_error("Failed to create image view");
+    }
+}
+
+void Vol::Rendering::OffscreenPass::create_volume_sampler()
+{
+    VkSamplerCreateInfo create_info{
+        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+        .magFilter = VK_FILTER_LINEAR,
+        .minFilter = VK_FILTER_LINEAR,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+        .mipLodBias = 0.0f,
+        .anisotropyEnable = VK_FALSE,
+        .maxAnisotropy = 0.0f,
+        .compareEnable = VK_FALSE,
+        .compareOp = VK_COMPARE_OP_ALWAYS,
+        .minLod = 0.0f,
+        .maxLod = 0.0f,
+        .borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
+        .unnormalizedCoordinates = VK_FALSE,
+    };
+
+    if (vkCreateSampler(
+            context->get_device(), &create_info, nullptr, &volume_sampler) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("Failed to create sampler");
     }
 }
 
@@ -891,6 +1022,52 @@ void Vol::Rendering::OffscreenPass::update_uniform_buffer(uint32_t frame_index)
         sizeof(transformations));
 }
 
+void Vol::Rendering::OffscreenPass::update_descriptor_sets()
+{
+    // Write descriptor sets
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        // Uniform buffer
+        VkDescriptorBufferInfo buffer_info{
+            .buffer = uniform_buffers[i],
+            .offset = 0,
+            .range = sizeof(Transformations),
+        };
+
+        // Volume image
+        VkDescriptorImageInfo image_info{
+            .sampler = volume_sampler,
+            .imageView = volume_image_view,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        };
+
+        std::array<VkWriteDescriptorSet, 2> descriptor_writes{
+            VkWriteDescriptorSet{
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = descriptor_sets[i],
+                .dstBinding = 0,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .pBufferInfo = &buffer_info,
+            },
+            VkWriteDescriptorSet{
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = descriptor_sets[i],
+                .dstBinding = 1,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo = &image_info,
+            },
+        };
+
+        vkUpdateDescriptorSets(
+            context->get_device(),
+            static_cast<uint32_t>(descriptor_writes.size()),
+            descriptor_writes.data(), 0, nullptr);
+    }
+}
+
 void Vol::Rendering::OffscreenPass::destroy_image()
 {
     vkDestroyImageView(context->get_device(), color.image_view, nullptr);
@@ -903,6 +1080,14 @@ void Vol::Rendering::OffscreenPass::destroy_image()
 
     vkDestroyFramebuffer(context->get_device(), framebuffer, nullptr);
     vkDestroySampler(context->get_device(), sampler, nullptr);
+}
+
+void Vol::Rendering::OffscreenPass::destroy_volume()
+{
+    vkDestroySampler(context->get_device(), volume_sampler, nullptr);
+    vkDestroyImageView(context->get_device(), volume_image_view, nullptr);
+    vkDestroyImage(context->get_device(), volume_image, nullptr);
+    vkFreeMemory(context->get_device(), volume_image_memory, nullptr);
 }
 
 void Vol::Rendering::OffscreenPass::create_buffer(
@@ -952,35 +1137,62 @@ void Vol::Rendering::OffscreenPass::create_buffer(
     vkBindBufferMemory(context->get_device(), buffer, buffer_memory, 0);
 }
 
+void Vol::Rendering::OffscreenPass::create_image(
+    VkImageType image_type,
+    VkFormat format,
+    VkExtent3D extent,
+    VkImageTiling tiling,
+    VkImageUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkImage &image,
+    VkDeviceMemory &image_memory)
+{
+    VkImageCreateInfo create_info = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = image_type,
+        .format = format,
+        .extent = extent,
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = tiling,
+        .usage = usage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
+
+    if (vkCreateImage(context->get_device(), &create_info, nullptr, &image) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("Failed to create image");
+    }
+
+    VkMemoryRequirements memory_requirements;
+    vkGetImageMemoryRequirements(
+        context->get_device(), image, &memory_requirements);
+
+    VkMemoryAllocateInfo alloc_info = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memory_requirements.size,
+        .memoryTypeIndex = find_memory_type(
+            context->get_physical_device(), memory_requirements.memoryTypeBits,
+            properties),
+    };
+
+    if (vkAllocateMemory(
+            context->get_device(), &alloc_info, nullptr, &image_memory) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate memory");
+    }
+
+    vkBindImageMemory(context->get_device(), image, image_memory, 0);
+}
+
 void Vol::Rendering::OffscreenPass::copy_buffer(
     VkBuffer src,
     VkBuffer dst,
     VkDeviceSize size)
 {
-    // Allocate command buffer
-    VkCommandBufferAllocateInfo alloc_info = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = context->get_command_pool(),
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1,
-    };
-
-    VkCommandBuffer command_buffer;
-    if (vkAllocateCommandBuffers(
-            context->get_device(), &alloc_info, &command_buffer) !=
-        VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate command buffer");
-    }
-
-    // Record copy command to command buffer
-    VkCommandBufferBeginInfo begin_info = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-    };
-
-    if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to begin command buffer");
-    }
+    VkCommandBuffer command_buffer = context->begin_single_command();
 
     VkBufferCopy copy_region = {
         .srcOffset = 0,
@@ -989,28 +1201,91 @@ void Vol::Rendering::OffscreenPass::copy_buffer(
     };
     vkCmdCopyBuffer(command_buffer, src, dst, 1, &copy_region);
 
-    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to end command buffer");
-    }
+    context->end_single_command(command_buffer);
+}
 
-    // Submit command buffer
-    VkSubmitInfo submit_info = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &command_buffer,
+void Vol::Rendering::OffscreenPass::copy_buffer_to_image(
+    VkBuffer src,
+    VkImage dst,
+    VkExtent3D extent)
+{
+    VkCommandBuffer command_buffer = context->begin_single_command();
+
+    VkBufferImageCopy copy_region{
+        .bufferOffset = 0,
+        .bufferRowLength = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource =
+            VkImageSubresourceLayers{
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel = 0,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+        .imageOffset = {0, 0, 0},
+        .imageExtent = extent,
     };
 
-    if (vkQueueSubmit(
-            context->get_graphics_queue(), 1, &submit_info, VK_NULL_HANDLE) !=
-        VK_SUCCESS) {
-        throw std::runtime_error("Failed to submit queue");
+    vkCmdCopyBufferToImage(
+        command_buffer, src, dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+        &copy_region);
+
+    context->end_single_command(command_buffer);
+}
+
+void Vol::Rendering::OffscreenPass::transition_image_layout(
+    VkImage image,
+    VkFormat format,
+    VkImageLayout old_layout,
+    VkImageLayout new_layout)
+{
+    VkCommandBuffer command_buffer = context->begin_single_command();
+
+    VkImageMemoryBarrier barrier = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .srcAccessMask = 0,
+        .dstAccessMask = 0,
+        .oldLayout = old_layout,
+        .newLayout = new_layout,
+        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .image = image,
+        .subresourceRange =
+            VkImageSubresourceRange{
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+    };
+
+    VkPipelineStageFlags src_stage, dst_stage;
+
+    if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
+        new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        src_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        dst_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    } else if (
+        old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+        new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        src_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    } else {
+        throw std::invalid_argument("Unsupported layout transition");
     }
 
-    vkQueueWaitIdle(context->get_graphics_queue());
+    vkCmdPipelineBarrier(
+        command_buffer, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1,
+        &barrier);
 
-    // Free command buffer
-    vkFreeCommandBuffers(
-        context->get_device(), context->get_command_pool(), 1, &command_buffer);
+    context->end_single_command(command_buffer);
 }
 
 uint32_t get_memory_type_index(
