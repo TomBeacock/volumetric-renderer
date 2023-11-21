@@ -4,6 +4,7 @@ layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_tex_coords;
 
 layout(location = 0) out vec3 out_tex_coords;
+layout(location = 1) out vec3 out_frag_position;
 
 layout(binding = 0) uniform Transformations {
 	mat4 view;
@@ -12,6 +13,7 @@ layout(binding = 0) uniform Transformations {
 
 void main() {
 	out_tex_coords = in_tex_coords;
+	out_frag_position = in_position;
 
 	gl_Position =
 		u_transformations.proj *
