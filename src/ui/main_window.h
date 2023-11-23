@@ -2,6 +2,8 @@
 
 #include "imgui.h"
 
+#include <glm/glm.hpp>
+
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -11,6 +13,11 @@ namespace Vol::UI
 class MainWindow {
   public:
     void update();
+
+    inline void set_framerate(double framerate)
+    {
+        this->framerate = framerate;
+    };
 
   private:
     void update_main_menu_bar();
@@ -32,6 +39,7 @@ class MainWindow {
 
   private:
     std::string status_text = "";
-    uint32_t viewport_width = 0, viewport_height = 0;
+    double framerate = 0.0;
+    glm::u32vec2 current_scene_window_size;
 };
 }  // namespace Vol::UI

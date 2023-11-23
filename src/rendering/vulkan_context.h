@@ -14,6 +14,8 @@ class OffscreenPass;
 
 namespace Vol::Rendering
 {
+constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+
 class VulkanContext {
   public:
     explicit VulkanContext(SDL_Window *window);
@@ -21,6 +23,8 @@ class VulkanContext {
 
     void render();
     void wait_till_idle();
+    VkCommandBuffer begin_single_command();
+    void end_single_command(VkCommandBuffer command_buffer);
 
     inline VkInstance get_instance() const { return instance; }
     inline VkSurfaceKHR get_surface() const { return surface; }

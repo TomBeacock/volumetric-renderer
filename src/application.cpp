@@ -10,8 +10,11 @@
 #include <nfd.h>
 
 #include <cassert>
+#include <numeric>
 
 Vol::Application *Vol::Application::instance = nullptr;
+
+double calculate_framerate();
 
 Vol::Application::Application()
     : running(false),
@@ -55,6 +58,9 @@ int Vol::Application::run()
 {
     running = true;
     while (running) {
+        // Calculate frame rate
+        float framerate = calculate_framerate();
+
         // Handle events
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -72,6 +78,7 @@ int Vol::Application::run()
         }
 
         // Update immediate mode ui
+        ui_context->get_main_window().set_framerate(framerate);
         ui_context->update();
 
         // Render frame
@@ -88,4 +95,26 @@ int Vol::Application::run()
 Vol::Application &Vol::Application::main()
 {
     return *instance;
+}
+
+double calculate_framerate()
+{
+    static std::vector<double> frame_times(5, 0.0f);
+    static size_t i = 0;
+    static uint64_t last_time = SDL_GetTicks();
+
+    // Add current frame duration
+    uint64_t current_time = SDL_GetTicks();
+    double frame_time = static_cast<double>(current_time - last_time) / 1000.0f;
+    frame_times[i] = frame_time;
+
+    // Update for next frame
+    i = (i + 1) % frame_times.size();
+    last_time = current_time;
+
+    // Calculate new framerate
+    double average_frame_time =
+        std::accumulate(frame_times.begin(), frame_times.end(), 0.0f) /
+        static_cast<double>(frame_times.size());
+    return 1.0f / average_frame_time;
 }

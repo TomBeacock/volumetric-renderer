@@ -3,6 +3,7 @@
 #include "application.h"
 #include "rendering/main_pass.h"
 #include "rendering/offscreen_pass.h"
+#include "rendering/util.h"
 #include "rendering/vulkan_context.h"
 
 #include <SDL3/SDL.h>
@@ -97,15 +98,18 @@ void Vol::ImGuiContext::init_backends(SDL_Window *window)
         throw std::runtime_error("Failed to create descriptor pool");
     }
 
+    Vol::Rendering::SwapChainSupportDetails swapchain_details =
+        Vol::Rendering::get_swap_chain_support(
+            vulkan_context->get_physical_device(),
+            vulkan_context->get_surface());
+
     ImGui_ImplVulkan_InitInfo init_info = {
         .Instance = vulkan_context->get_instance(),
         .PhysicalDevice = vulkan_context->get_physical_device(),
         .Device = vulkan_context->get_device(),
         .Queue = vulkan_context->get_graphics_queue(),
         .DescriptorPool = descriptor_pool,
-        .MinImageCount = static_cast<uint32_t>(
-            vulkan_context->get_main_pass()->get_swap_chain().images.size() -
-            1),
+        .MinImageCount = swapchain_details.capabilities.minImageCount,
         .ImageCount = static_cast<uint32_t>(
             vulkan_context->get_main_pass()->get_swap_chain().images.size()),
     };
@@ -115,69 +119,13 @@ void Vol::ImGuiContext::init_backends(SDL_Window *window)
 
     // Upload fonts
     {
-        // Get command pool and buffer
-        VkCommandPool command_pool = vulkan_context->get_command_pool();
-
-        VkCommandBufferAllocateInfo allocation_info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool = command_pool,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = 1,
-        };
-
-        VkCommandBuffer command_buffer;
-        if (vkAllocateCommandBuffers(
-                vulkan_context->get_device(), &allocation_info,
-                &command_buffer) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate command buffer");
-        }
-
-        // Reset command pool
-        vkResetCommandPool(vulkan_context->get_device(), command_pool, 0);
-
-        // Define command buffer begin information
-        VkCommandBufferBeginInfo begin_info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-        };
-
-        // Begin command buffer
-        if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to begin command buffer");
-        }
-
-        // Create fonts
+        VkCommandBuffer command_buffer = vulkan_context->begin_single_command();
         ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
-
-        // End command buffer
-        if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to end command buffer");
-        };
-
-        // Submit command buffer
-        VkSubmitInfo end_info = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &command_buffer,
-        };
-        if (vkQueueSubmit(
-                vulkan_context->get_graphics_queue(), 1, &end_info,
-                VK_NULL_HANDLE) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to submit fonts command buffer");
-        };
-
-        // Wait till device idle
-        vulkan_context->wait_till_idle();
-
+        vulkan_context->end_single_command(command_buffer);
         ImGui_ImplVulkan_DestroyFontUploadObjects();
-
-        vkFreeCommandBuffers(
-            vulkan_context->get_device(), command_pool, 1, &command_buffer);
     }
 
-    // Add scene image
     // Create descriptor set
-
     Vol::Rendering::OffscreenPass *const offscreen_pass =
         Application::main().get_vulkan_context().get_offscreen_pass();
 

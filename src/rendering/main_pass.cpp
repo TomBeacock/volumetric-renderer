@@ -15,8 +15,6 @@
 #include <optional>
 #include <stdexcept>
 
-constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-
 VkSurfaceFormatKHR select_swap_surface_format(
     const std::vector<VkSurfaceFormatKHR> &available_formats);
 
@@ -90,7 +88,7 @@ void Vol::Rendering::MainPass::render()
     }
 
     // Record offscreen pass
-    context->get_offscreen_pass()->record(command_buffer);
+    context->get_offscreen_pass()->record(command_buffer, frame_index);
     // Record main pass
     record(command_buffer);
 

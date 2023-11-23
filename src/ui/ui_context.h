@@ -14,6 +14,8 @@ class UIContext {
 
     void show_error(const std::string &title, const std::string &message);
 
+    inline MainWindow &get_main_window() { return main_window; }
+
   private:
     MainWindow main_window;
     ErrorPopup error_popup;

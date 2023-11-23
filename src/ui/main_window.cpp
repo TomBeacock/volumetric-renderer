@@ -119,6 +119,20 @@ void Vol::UI::MainWindow::update_status_bar()
             ImGuiWindowFlags_NoDecoration)) {
         ImGui::AlignTextToFramePadding();
         ImGui::Text(status_text.c_str());
+
+        ImGui::SameLine();
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+        std::string framerate_text = std::format("fps: {:.1f}", framerate);
+
+        ImVec2 text_size = ImGui::CalcTextSize(framerate_text.c_str());
+        ImVec2 region = ImGui::GetContentRegionAvail();
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + region.x - text_size.x);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text(framerate_text.c_str());
+
+        ImGui::PopStyleVar();
     }
     ImGui::End();
 
@@ -153,22 +167,24 @@ void Vol::UI::MainWindow::update_viewport()
     // Begin child
     const ImGuiViewport *viewport = ImGui::GetMainViewport();
     float viewport_width = viewport->WorkSize.x - 400.0f;
+
     if (ImGui::BeginChild("viewport", ImVec2(viewport_width, 0.0f))) {
-        ImVec2 viewport_size = ImGui::GetWindowSize();
-        uint32_t width = static_cast<uint32_t>(viewport_size.x),
-                 height = static_cast<uint32_t>(viewport_size.y);
-        if (width != viewport_width || height != viewport_height) {
-            viewport_width = width;
-            viewport_height = height;
+        ImVec2 scene_window_size = ImGui::GetWindowSize();
+        uint32_t width = static_cast<uint32_t>(scene_window_size.x);
+        uint32_t height = static_cast<uint32_t>(scene_window_size.y);
+
+        if (width != current_scene_window_size.x ||
+            height != current_scene_window_size.y) {
+            current_scene_window_size = {width, height};
             Application::main().get_imgui_context().recreate_viewport_texture(
-                viewport_width, viewport_height);
+                width, height);
         }
         ImTextureID texture = static_cast<ImTextureID>(
             Application::main().get_imgui_context().get_descriptor());
 
         ImGuiStyle &style = ImGui::GetStyle();
         ImGui::ImageRounded(
-            texture, viewport_size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f),
+            texture, scene_window_size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f),
             ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 0.0f),
             style.ChildRounding);
     }
