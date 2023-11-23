@@ -26,9 +26,10 @@ struct FramebufferAttachment {
 
 class OffscreenPass {
   private:
-    struct Transformations {
-        glm::mat4 view;
-        glm::mat4 proj;
+    struct UniformBufferObject {
+        alignas(16) glm::vec3 camera_position;
+        alignas(16) glm::mat4 view;
+        alignas(16) glm::mat4 proj;
     };
 
   public:

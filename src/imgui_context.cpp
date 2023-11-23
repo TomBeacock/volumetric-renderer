@@ -3,6 +3,7 @@
 #include "application.h"
 #include "rendering/main_pass.h"
 #include "rendering/offscreen_pass.h"
+#include "rendering/util.h"
 #include "rendering/vulkan_context.h"
 
 #include <SDL3/SDL.h>
@@ -97,15 +98,18 @@ void Vol::ImGuiContext::init_backends(SDL_Window *window)
         throw std::runtime_error("Failed to create descriptor pool");
     }
 
+    Vol::Rendering::SwapChainSupportDetails swapchain_details =
+        Vol::Rendering::get_swap_chain_support(
+            vulkan_context->get_physical_device(),
+            vulkan_context->get_surface());
+
     ImGui_ImplVulkan_InitInfo init_info = {
         .Instance = vulkan_context->get_instance(),
         .PhysicalDevice = vulkan_context->get_physical_device(),
         .Device = vulkan_context->get_device(),
         .Queue = vulkan_context->get_graphics_queue(),
         .DescriptorPool = descriptor_pool,
-        .MinImageCount = static_cast<uint32_t>(
-            vulkan_context->get_main_pass()->get_swap_chain().images.size() -
-            1),
+        .MinImageCount = swapchain_details.capabilities.minImageCount,
         .ImageCount = static_cast<uint32_t>(
             vulkan_context->get_main_pass()->get_swap_chain().images.size()),
     };

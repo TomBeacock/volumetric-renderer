@@ -682,8 +682,8 @@ void Vol::Rendering::OffscreenPass::create_pipeline()
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
         .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .colorBlendOp = VK_BLEND_OP_ADD,
-        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .alphaBlendOp = VK_BLEND_OP_ADD,
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
@@ -826,7 +826,7 @@ void Vol::Rendering::OffscreenPass::create_index_buffer()
 
 void Vol::Rendering::OffscreenPass::create_uniform_buffers()
 {
-    VkDeviceSize size = sizeof(Transformations);
+    VkDeviceSize size = sizeof(UniformBufferObject);
     uniform_buffers.resize(MAX_FRAMES_IN_FLIGHT);
     uniform_buffers_memory.resize(MAX_FRAMES_IN_FLIGHT);
     uniform_buffers_mapped.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1005,21 +1005,20 @@ void Vol::Rendering::OffscreenPass::create_volume_sampler()
 
 void Vol::Rendering::OffscreenPass::update_uniform_buffer(uint32_t frame_index)
 {
-    // Create matrices
     float aspect = static_cast<float>(width) / static_cast<float>(height);
+    glm::vec3 camera_position{1.0f, -1.0f, 1.0f};
 
-    Transformations transformations = {
-        .view = glm::lookAt(
-            {1.0f, -1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},
-            glm::vec3{0.0f, 0.0f, 1.0f}),
-        .proj = glm::perspective(glm::radians(90.0f), aspect, 0.1f, 10.0f),
+    // Create uniform buffer object
+    UniformBufferObject ubo = {
+        .camera_position = camera_position,
+        .view = glm::lookAtRH(
+            camera_position, {0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}),
+        .proj = glm::perspectiveRH(glm::radians(40.0f), aspect, 0.1f, 10.0f),
     };
 
-    transformations.proj[1][1] *= -1;  // Flip Y for Vulkan clip space
+    ubo.proj[1][1] *= -1;  // Flip projection Y for Vulkan clip space
 
-    memcpy(
-        uniform_buffers_mapped[frame_index], &transformations,
-        sizeof(transformations));
+    memcpy(uniform_buffers_mapped[frame_index], &ubo, sizeof(ubo));
 }
 
 void Vol::Rendering::OffscreenPass::update_descriptor_sets()
@@ -1030,7 +1029,7 @@ void Vol::Rendering::OffscreenPass::update_descriptor_sets()
         VkDescriptorBufferInfo buffer_info{
             .buffer = uniform_buffers[i],
             .offset = 0,
-            .range = sizeof(Transformations),
+            .range = sizeof(UniformBufferObject),
         };
 
         // Volume image
