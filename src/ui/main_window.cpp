@@ -119,6 +119,20 @@ void Vol::UI::MainWindow::update_status_bar()
             ImGuiWindowFlags_NoDecoration)) {
         ImGui::AlignTextToFramePadding();
         ImGui::Text(status_text.c_str());
+
+        ImGui::SameLine();
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+        std::string framerate_text = std::format("fps: {:.1f}", framerate);
+
+        ImVec2 text_size = ImGui::CalcTextSize(framerate_text.c_str());
+        ImVec2 region = ImGui::GetContentRegionAvail();
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + region.x - text_size.x);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text(framerate_text.c_str());
+
+        ImGui::PopStyleVar();
     }
     ImGui::End();
 

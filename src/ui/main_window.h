@@ -14,6 +14,11 @@ class MainWindow {
   public:
     void update();
 
+    inline void set_framerate(double framerate)
+    {
+        this->framerate = framerate;
+    };
+
   private:
     void update_main_menu_bar();
     void update_status_bar();
@@ -34,6 +39,7 @@ class MainWindow {
 
   private:
     std::string status_text = "";
+    double framerate = 0.0;
     glm::u32vec2 current_scene_window_size;
 };
 }  // namespace Vol::UI
