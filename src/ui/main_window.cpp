@@ -123,7 +123,7 @@ void Vol::UI::MainWindow::update_status_bar()
         ImGui::SameLine();
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
-        std::string framerate_text = std::format("fps: {:.1f}", framerate);
+        std::string framerate_text = std::format("{:.0f} fps", framerate);
 
         ImVec2 text_size = ImGui::CalcTextSize(framerate_text.c_str());
         ImVec2 region = ImGui::GetContentRegionAvail();
