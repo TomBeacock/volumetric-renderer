@@ -1,9 +1,10 @@
 #include "application.h"
 
 #include "data/importer.h"
-#include "imgui_context.h"
 #include "rendering/main_pass.h"
 #include "rendering/vulkan_context.h"
+#include "scene/scene.h"
+#include "ui/imgui_context.h"
 #include "ui/ui_context.h"
 
 #include <SDL3/SDL.h>
@@ -22,7 +23,8 @@ Vol::Application::Application()
       vulkan_context(nullptr),
       imgui_context(nullptr),
       ui_context(nullptr),
-      importer(nullptr)
+      importer(std::make_unique<Data::Importer>()),
+      scene(std::make_unique<Scene::Scene>())
 {
     assert(instance == nullptr);
     instance = this;
@@ -36,15 +38,15 @@ Vol::Application::Application()
     SDL_Window *window = SDL_CreateWindow("Template", 1280, 720, window_flags);
 
     vulkan_context = new Rendering::VulkanContext(window);
-    imgui_context = new ImGuiContext(window, vulkan_context);
+    imgui_context = new UI::ImGuiContext(window, vulkan_context);
     ui_context = new UI::UIContext();
-    importer = new Data::Importer();
 }
 
 Vol::Application::~Application()
 {
     vulkan_context->wait_till_idle();
 
+    delete ui_context;
     delete imgui_context;
     delete vulkan_context;
 

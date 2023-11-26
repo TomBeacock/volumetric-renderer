@@ -10,7 +10,7 @@ namespace Vol::Rendering
 class VulkanContext;
 }
 
-namespace Vol
+namespace Vol::UI
 {
 class ImGuiContext {
   public:
@@ -34,4 +34,4 @@ class ImGuiContext {
     VkDescriptorPool descriptor_pool;
     VkDescriptorSet descriptor;
 };
-}  // namespace Vol
+}  // namespace Vol::UI

@@ -14,7 +14,7 @@
 
 #include <stdexcept>
 
-Vol::ImGuiContext::ImGuiContext(
+Vol::UI::ImGuiContext::ImGuiContext(
     SDL_Window *window,
     Rendering::VulkanContext *vulkan_context)
     : vulkan_context(vulkan_context)
@@ -31,7 +31,7 @@ Vol::ImGuiContext::ImGuiContext(
     init_backends(window);
 }
 
-Vol::ImGuiContext::~ImGuiContext()
+Vol::UI::ImGuiContext::~ImGuiContext()
 {
     // Destory descriptor pool
     vkDestroyDescriptorPool(
@@ -42,17 +42,17 @@ Vol::ImGuiContext::~ImGuiContext()
     ImGui::DestroyContext();
 }
 
-void Vol::ImGuiContext::process_event(SDL_Event *event)
+void Vol::UI::ImGuiContext::process_event(SDL_Event *event)
 {
     ImGui_ImplSDL3_ProcessEvent(event);
 }
 
-void Vol::ImGuiContext::end_frame()
+void Vol::UI::ImGuiContext::end_frame()
 {
     ImGui::EndFrame();
 }
 
-void Vol::ImGuiContext::recreate_viewport_texture(
+void Vol::UI::ImGuiContext::recreate_viewport_texture(
     uint32_t width,
     uint32_t height)
 {
@@ -74,7 +74,7 @@ void Vol::ImGuiContext::recreate_viewport_texture(
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void Vol::ImGuiContext::init_backends(SDL_Window *window)
+void Vol::UI::ImGuiContext::init_backends(SDL_Window *window)
 {
     // Initialize ImGui for SDL3
     ImGui_ImplSDL3_InitForVulkan(window);
