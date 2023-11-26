@@ -17,7 +17,7 @@ add_executable(${PROJECT_NAME} ${OPTIONS}
 	"rendering/offscreen_pass.h" "rendering/offscreen_pass.cpp"
 	"rendering/util.h" "rendering/util.cpp"
 	 
-	"imgui_context.h" "imgui_context.cpp"
+	"ui/imgui_context.h" "ui/imgui_context.cpp"
 	"ui/ui_context.h" "ui/ui_context.cpp"
 	"ui/main_window.h" "ui/main_window.cpp"
 	"ui/error_popup.h" "ui/error_popup.cpp"
@@ -25,6 +25,9 @@ add_executable(${PROJECT_NAME} ${OPTIONS}
 	"data/dataset.h"
 	"data/file_parser.h" "data/file_parser.cpp"
 	"data/importer.h" "data/importer.cpp"
+	
+	"scene/scene.h"
+	"scene/camera.h" "scene/camera.cpp"
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE extern)
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")

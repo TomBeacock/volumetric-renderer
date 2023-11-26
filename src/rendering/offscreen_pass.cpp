@@ -2,10 +2,12 @@
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
+#include "application.h"
 #include "data/dataset.h"
 #include "rendering/main_pass.h"
 #include "rendering/util.h"
 #include "rendering/vulkan_context.h"
+#include "scene/scene.h"
 
 #include <backends/imgui_impl_vulkan.h>
 #include <glm/glm.hpp>
@@ -1006,17 +1008,21 @@ void Vol::Rendering::OffscreenPass::create_volume_sampler()
 void Vol::Rendering::OffscreenPass::update_uniform_buffer(uint32_t frame_index)
 {
     float aspect = static_cast<float>(width) / static_cast<float>(height);
-    glm::vec3 camera_position{1.0f, -1.0f, 1.0f};
+    Vol::Scene::Camera &camera = Application::main().get_scene().get_camera();
+
+    // Convert to vulkan coordinate system
+    glm::mat4 coordinate_conversion =
+        glm::rotate(
+            glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
+        glm::scale(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, 1.0f));
 
     // Create uniform buffer object
     UniformBufferObject ubo = {
-        .camera_position = camera_position,
-        .view = glm::lookAtRH(
-            camera_position, {0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}),
-        .proj = glm::perspectiveRH(glm::radians(40.0f), aspect, 0.1f, 10.0f),
+        .camera_position = camera.get_position(),
+        .view = camera.get_view(),
+        .proj = glm::perspectiveRH(glm::radians(40.0f), aspect, 0.1f, 10.0f) *
+                coordinate_conversion,
     };
-
-    ubo.proj[1][1] *= -1;  // Flip projection Y for Vulkan clip space
 
     memcpy(uniform_buffers_mapped[frame_index], &ubo, sizeof(ubo));
 }

@@ -26,6 +26,11 @@ class MainWindow {
     void update_viewport();
     void update_controls();
 
+    void update_viewport_rotation(
+        const glm::vec2 &min_bound,
+        const glm::vec2 &max_bound);
+    void update_viewport_zoom();
+
     void set_status_text_on_hover(const std::string &text);
 
     void slider(
