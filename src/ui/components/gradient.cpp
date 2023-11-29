@@ -34,10 +34,25 @@ std::pair<bool, bool> update_markers(
     std::vector<T> &markers,
     GradientEditState &state,
     GradientEditState::MarkerType type,
-    ImVec2 min,
-    ImVec2 max,
+    const ImVec2 &min,
+    const ImVec2 &max,
     float marker_radius,
     F &&get_color);
+
+template <typename T, typename F>
+void update_marker(
+    const char *str_id,
+    std::vector<T> &markers,
+    int index,
+    GradientEditState &state,
+    GradientEditState::MarkerType type,
+    const ImVec2 &min,
+    const ImVec2 &max,
+    float marker_radius,
+    F &&get_color,
+    bool &changed,
+    bool &hovered,
+    int &selected_index);
 
 void draw_marker(
     const ImVec2 &start,
@@ -72,6 +87,23 @@ glm::vec4 Vol::UI::Components::Gradient::sample(float location)
     return glm::vec4(color.r, color.g, color.b, alpha);
 }
 
+std::vector<glm::vec4> Vol::UI::Components::Gradient::discretize(size_t count)
+{
+    float stride = 1.0f / count;
+    float offset = stride / 2.0f;
+
+    std::vector<glm::vec4> discrete;
+    discrete.reserve(count);
+
+    float location = offset;
+    for (size_t i = 0; i < count; i++) {
+        discrete.push_back(sample(location));
+        location += stride;
+    }
+
+    return discrete;
+}
+
 std::pair<bool, size_t> Vol::UI::Components::Gradient::add_color_marker(
     float location,
     glm::vec3 value)
@@ -102,7 +134,7 @@ bool Vol::UI::Components::gradient_edit(
     GradientEditState &state,
     std::string &status_text)
 {
-    bool change = false;
+    bool changed = false;
 
     ImGui::PushID(str_id);
 
@@ -130,7 +162,7 @@ bool Vol::UI::Components::gradient_edit(
                     ImVec4(marker.value, marker.value, marker.value, 1.0f));
             });
 
-        change |= marker_changed;
+        changed |= marker_changed;
 
         ImGui::InvisibleButton(
             "alpha_marker_region", ImVec2(width, marker_height));
@@ -151,7 +183,7 @@ bool Vol::UI::Components::gradient_edit(
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                 auto [marker_changed, index] =
                     gradient.add_alpha_marker(location, alpha);
-                change |= marker_changed;
+                changed |= marker_changed;
                 state.selected_index = index;
                 state.selected_type = GradientEditState::MarkerType::Alpha;
             }
@@ -245,12 +277,12 @@ bool Vol::UI::Components::gradient_edit(
                     marker.value.r, marker.value.g, marker.value.b, 1.0f));
             });
 
-        change |= marker_changed;
+        changed |= marker_changed;
 
         ImGui::InvisibleButton(
             "color_marker_region", ImVec2(width, marker_height));
 
-        if (!marker_hovered && ImGui::IsItemHovered()) {
+        if (!marker_hovered && !state.dragging && ImGui::IsItemHovered()) {
             float offset = ImGui::GetMousePos().x - color_origin.x;
             float location = offset / inner_width;
             glm::vec3 color = gradient.sample_color(location);
@@ -267,7 +299,7 @@ bool Vol::UI::Components::gradient_edit(
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                 auto [marker_changed, index] =
                     gradient.add_color_marker(location, color);
-                change |= marker_changed;
+                changed |= marker_changed;
                 state.selected_index = index;
                 state.selected_type = GradientEditState::MarkerType::Color;
             }
@@ -428,7 +460,7 @@ bool Vol::UI::Components::gradient_edit(
 
     ImGui::PopID();
 
-    return change;
+    return changed;
 }
 
 template <typename T>
@@ -483,70 +515,70 @@ std::pair<bool, bool> update_markers(
     std::vector<T> &markers,
     GradientEditState &state,
     GradientEditState::MarkerType type,
-    ImVec2 min,
-    ImVec2 max,
+    const ImVec2 &min,
+    const ImVec2 &max,
     float marker_radius,
     F &&get_color)
 {
     ImVec2 origin = ImGui::GetCursorScreenPos();
 
-    bool change = false;
-    bool hover = false;
+    bool changed = false;
+    bool hovered = false;
+    int new_selected_index = -1;
 
-    float marker_height = max.y - min.y;
+    // Update last marker first
+    update_marker(
+        str_id, markers, markers.size() - 1, state, type, min, max,
+        marker_radius, get_color, changed, hovered, new_selected_index);
 
-    for (size_t i = 0; i < markers.size(); i++) {
-        T &marker = markers[i];
-        bool selected =
-            type == state.selected_type && i == state.selected_index;
-
-        float x = std::lerp(min.x, max.x, marker.location);
-
-        if (type == GradientEditState::MarkerType::Color) {
-            draw_marker(
-                ImVec2(x, min.y), ImVec2(x, max.y - marker_radius),
-                marker_radius, get_color(marker), selected);
-        } else {
-            draw_marker(
-                ImVec2(x, max.y), ImVec2(x, min.y + marker_radius),
-                marker_radius, get_color(marker), selected);
+    // Update non-selected markers
+    for (size_t i = 0; i < markers.size() - 1; i++) {
+        if (i == state.selected_index) {
+            continue;
         }
-
-        ImGui::SetCursorScreenPos(ImVec2(x - marker_radius, min.y));
-        ImGui::InvisibleButton(
-            std::format("{}-{}", str_id, i).c_str(),
-            ImVec2(marker_radius * 2.0f, marker_height));
-
-        hover |= ImGui::IsItemHovered();
-
-        if (state.dragging == false && ImGui::IsItemHovered() &&
-            ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-            state.selected_type = type;
-            state.selected_index = i;
-            state.dragging = i > 0 && i < markers.size() - 1;
-        }
-
-        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-            state.dragging = false;
-        }
-
-        if (state.dragging && state.selected_index == i &&
-            state.selected_type == type &&
-            ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-            float delta = ImGui::GetIO().MouseDelta.x / (max.x - min.x);
-            marker.location = std::clamp(marker.location + delta, 0.0f, 1.0f);
-
-            change |= delta > 0.0f;
-        }
+        update_marker(
+            str_id, markers, i, state, type, min, max, marker_radius, get_color,
+            changed, hovered, new_selected_index);
     }
 
+    // Update selected marker
+    bool selected_hovered = false;
+    if (type == state.selected_type && state.selected_index != -1) {
+        update_marker(
+            str_id, markers, state.selected_index, state, type, min, max,
+            marker_radius, get_color, changed, selected_hovered,
+            new_selected_index);
+        hovered |= selected_hovered;
+    }
+
+    // Set new selected
+    if (new_selected_index != -1) {
+        state.selected_index = new_selected_index;
+        state.selected_type = type;
+    }
+
+    // Begin drag
+    if (selected_hovered && ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
+        !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+        state.dragging = state.selected_index > 0 &&
+                         state.selected_index < markers.size() - 1;
+    }
+
+    // End drag
+    if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+        state.dragging = false;
+    }
+
+    // Ensure markers remain in sorted order
     if (state.selected_type == type && state.selected_index >= 0) {
         T marker = markers[state.selected_index];
+        // Shuffle down
         while (state.selected_index > 1 &&
                marker < markers[state.selected_index - 1]) {
             markers[state.selected_index] = markers[state.selected_index - 1];
             state.selected_index--;
         }
+        // Shuffle up
         while (state.selected_index < markers.size() - 2 &&
                marker > markers[state.selected_index + 1]) {
             markers[state.selected_index] = markers[state.selected_index + 1];
@@ -557,7 +589,69 @@ std::pair<bool, bool> update_markers(
 
     ImGui::SetCursorScreenPos(origin);
 
-    return {change, hover};
+    return {changed, hovered};
+}
+
+template <typename T, typename F>
+void update_marker(
+    const char *str_id,
+    std::vector<T> &markers,
+    int index,
+    GradientEditState &state,
+    GradientEditState::MarkerType type,
+    const ImVec2 &min,
+    const ImVec2 &max,
+    float marker_radius,
+    F &&get_color,
+    bool &changed,
+    bool &hovered,
+    int &selected_index)
+{
+    T &marker = markers[index];
+
+    float marker_height = max.y - min.y;
+    bool selected =
+        type == state.selected_type && index == state.selected_index;
+    float x = std::lerp(min.x, max.x, marker.location);
+
+    // Draw marker
+    if (type == GradientEditState::MarkerType::Color) {
+        draw_marker(
+            ImVec2(x, min.y), ImVec2(x, max.y - marker_radius), marker_radius,
+            get_color(marker), selected);
+    } else {
+        draw_marker(
+            ImVec2(x, max.y), ImVec2(x, min.y + marker_radius), marker_radius,
+            get_color(marker), selected);
+    }
+
+    // Draw invisible bounds
+    ImGui::SetCursorScreenPos(ImVec2(x - marker_radius, min.y));
+    ImGui::InvisibleButton(
+        std::format("{}-{}", str_id, index).c_str(),
+        ImVec2(marker_radius * 2.0f, marker_height));
+
+    bool marker_hovered =
+        ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+
+    hovered |= marker_hovered;
+
+    // Check if should select
+    if (state.dragging == false && marker_hovered &&
+        ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
+        !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+        selected_index = index;
+    }
+
+    // Update location if dragging
+    if (state.dragging && state.selected_index == index &&
+        state.selected_type == type &&
+        ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+        float delta = ImGui::GetIO().MouseDelta.x / (max.x - min.x);
+        marker.location = std::clamp(marker.location + delta, 0.0f, 1.0f);
+
+        changed |= delta > 0.0f;
+    }
 }
 
 void draw_marker(
