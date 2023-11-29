@@ -16,7 +16,7 @@ Vol::UI::UIContext::UIContext()
     style.WindowPadding = ImVec2(4.0f, 0.0f);
     style.ChildRounding = 4.0f;
     style.PopupRounding = 2.0f;
-    style.FrameRounding = 2.0f;
+    style.FrameRounding = 4.0f;
     style.GrabRounding = 10.0f;
 
     // Colors
