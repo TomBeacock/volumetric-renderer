@@ -206,6 +206,11 @@ void Vol::UI::MainWindow::update_controls()
         static Components::GradientEditState gradient_state;
         if (Components::gradient_edit(
                 "transfer_func", gradient, gradient_state, status_text)) {
+            std::vector<uint32_t> gradient_data = gradient.discretize(256);
+            Application::main()
+                .get_vulkan_context()
+                .get_offscreen_pass()
+                ->transfer_function_changed(gradient_data);
         }
     }
 

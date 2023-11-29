@@ -116,6 +116,7 @@ Vol::Rendering::OffscreenPass::OffscreenPass(
     : context(context), width(width), height(height)
 {
     Vol::Data::Dataset temp_volume{{1, 1, 1}, {1.0f}};
+    std::vector<glm::uint32_t> temp_transfer{0xFFFFFFFF};
 
     create_color_attachment();
     create_depth_attachment();
@@ -127,6 +128,7 @@ Vol::Rendering::OffscreenPass::OffscreenPass(
     create_index_buffer();
     create_uniform_buffers();
     create_volume(temp_volume);
+    create_transfer(temp_transfer);
     create_descriptor_pool();
     create_descriptor_sets();
 }
@@ -258,6 +260,17 @@ void Vol::Rendering::OffscreenPass::volume_dataset_changed(
 
     destroy_volume();
     create_volume(dataset);
+
+    update_descriptor_sets();
+}
+
+void Vol::Rendering::OffscreenPass::transfer_function_changed(
+    const std::vector<glm::uint32_t> &data)
+{
+    context->wait_till_idle();
+
+    destroy_transfer();
+    create_transfer(data);
 
     update_descriptor_sets();
 }
@@ -547,7 +560,7 @@ void Vol::Rendering::OffscreenPass::create_framebuffer()
 
 void Vol::Rendering::OffscreenPass::create_descriptor_set_layout()
 {
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {
         // Uniform buffer
         VkDescriptorSetLayoutBinding{
             .binding = 0,
@@ -559,6 +572,13 @@ void Vol::Rendering::OffscreenPass::create_descriptor_set_layout()
         // Volume texture
         VkDescriptorSetLayoutBinding{
             .binding = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = nullptr,
+        },
+        VkDescriptorSetLayoutBinding{
+            .binding = 2,
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .descriptorCount = 1,
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -856,7 +876,7 @@ void Vol::Rendering::OffscreenPass::create_descriptor_pool()
         },
         VkDescriptorPoolSize{
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = MAX_FRAMES_IN_FLIGHT,
+            .descriptorCount = MAX_FRAMES_IN_FLIGHT * 2,
         },
     };
 
@@ -1005,6 +1025,117 @@ void Vol::Rendering::OffscreenPass::create_volume_sampler()
     }
 }
 
+void Vol::Rendering::OffscreenPass::create_transfer(
+    const std::vector<glm::uint32_t> &data)
+{
+    create_transfer_image(data);
+    create_transfer_image_view();
+    create_transfer_sampler();
+}
+
+void Vol::Rendering::OffscreenPass::create_transfer_image(
+    const std::vector<glm::uint32_t> &data)
+{
+    VkDeviceSize size = sizeof(glm::uint32_t) * data.size();
+
+    // Create staging buffer
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
+    create_buffer(
+        size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        staging_buffer, staging_buffer_memory);
+
+    // Copy data to staging buffer
+    void *dst;
+    vkMapMemory(context->get_device(), staging_buffer_memory, 0, size, 0, &dst);
+    memcpy(dst, data.data(), static_cast<size_t>(size));
+    vkUnmapMemory(context->get_device(), staging_buffer_memory);
+
+    // Create image
+    VkExtent3D extent = {
+        .width = static_cast<uint32_t>(data.size()),
+        .height = 1,
+        .depth = 1,
+    };
+    create_image(
+        VK_IMAGE_TYPE_1D, VK_FORMAT_R8G8B8A8_SRGB, extent,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, transfer_image,
+        transfer_image_memory);
+
+    // Transition layout
+    transition_image_layout(
+        transfer_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    // Copy buffer
+    copy_buffer_to_image(staging_buffer, transfer_image, extent);
+
+    // Transition layout
+    transition_image_layout(
+        transfer_image, VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    // Destroy staging buffer
+    vkDestroyBuffer(context->get_device(), staging_buffer, nullptr);
+    vkFreeMemory(context->get_device(), staging_buffer_memory, nullptr);
+}
+
+void Vol::Rendering::OffscreenPass::create_transfer_image_view()
+{
+    VkImageViewCreateInfo create_info{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = transfer_image,
+        .viewType = VK_IMAGE_VIEW_TYPE_1D,
+        .format = VK_FORMAT_R8G8B8A8_SRGB,
+        .subresourceRange =
+            VkImageSubresourceRange{
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+    };
+
+    if (vkCreateImageView(
+            context->get_device(), &create_info, nullptr,
+            &transfer_image_view)) {
+        throw std::runtime_error("Failed to create image view");
+    }
+}
+
+void Vol::Rendering::OffscreenPass::create_transfer_sampler()
+{
+    VkSamplerCreateInfo create_info{
+        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+        .magFilter = VK_FILTER_LINEAR,
+        .minFilter = VK_FILTER_LINEAR,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .mipLodBias = 0.0f,
+        .anisotropyEnable = VK_FALSE,
+        .maxAnisotropy = 0.0f,
+        .compareEnable = VK_FALSE,
+        .compareOp = VK_COMPARE_OP_ALWAYS,
+        .minLod = 0.0f,
+        .maxLod = 0.0f,
+        .borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
+        .unnormalizedCoordinates = VK_FALSE,
+    };
+
+    if (vkCreateSampler(
+            context->get_device(), &create_info, nullptr, &transfer_sampler) !=
+        VK_SUCCESS) {
+        throw std::runtime_error("Failed to create sampler");
+    }
+}
+
 void Vol::Rendering::OffscreenPass::update_uniform_buffer(uint32_t frame_index)
 {
     float aspect = static_cast<float>(width) / static_cast<float>(height);
@@ -1039,13 +1170,20 @@ void Vol::Rendering::OffscreenPass::update_descriptor_sets()
         };
 
         // Volume image
-        VkDescriptorImageInfo image_info{
+        VkDescriptorImageInfo volume_image_info{
             .sampler = volume_sampler,
             .imageView = volume_image_view,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
 
-        std::array<VkWriteDescriptorSet, 2> descriptor_writes{
+        // Transfer image
+        VkDescriptorImageInfo transfer_image_info{
+            .sampler = transfer_sampler,
+            .imageView = transfer_image_view,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        };
+
+        std::array<VkWriteDescriptorSet, 3> descriptor_writes{
             VkWriteDescriptorSet{
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .dstSet = descriptor_sets[i],
@@ -1062,7 +1200,16 @@ void Vol::Rendering::OffscreenPass::update_descriptor_sets()
                 .dstArrayElement = 0,
                 .descriptorCount = 1,
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo = &image_info,
+                .pImageInfo = &volume_image_info,
+            },
+            VkWriteDescriptorSet{
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = descriptor_sets[i],
+                .dstBinding = 2,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo = &transfer_image_info,
             },
         };
 
@@ -1093,6 +1240,14 @@ void Vol::Rendering::OffscreenPass::destroy_volume()
     vkDestroyImageView(context->get_device(), volume_image_view, nullptr);
     vkDestroyImage(context->get_device(), volume_image, nullptr);
     vkFreeMemory(context->get_device(), volume_image_memory, nullptr);
+}
+
+void Vol::Rendering::OffscreenPass::destroy_transfer()
+{
+    vkDestroySampler(context->get_device(), transfer_sampler, nullptr);
+    vkDestroyImageView(context->get_device(), transfer_image_view, nullptr);
+    vkDestroyImage(context->get_device(), transfer_image, nullptr);
+    vkFreeMemory(context->get_device(), transfer_image_memory, nullptr);
 }
 
 void Vol::Rendering::OffscreenPass::create_buffer(

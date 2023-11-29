@@ -26,7 +26,7 @@ struct Gradient {
     glm::vec3 sample_color(float location);
     float sample_alpha(float location);
     glm::vec4 sample(float location);
-    std::vector<glm::vec4> discretize(size_t count);
+    std::vector<uint32_t> discretize(size_t count);
 
     std::pair<bool, size_t> add_color_marker(float location, glm::vec3 value);
     std::pair<bool, size_t> add_alpha_marker(float location, float value);

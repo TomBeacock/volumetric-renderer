@@ -87,17 +87,20 @@ glm::vec4 Vol::UI::Components::Gradient::sample(float location)
     return glm::vec4(color.r, color.g, color.b, alpha);
 }
 
-std::vector<glm::vec4> Vol::UI::Components::Gradient::discretize(size_t count)
+std::vector<glm::uint32_t> Vol::UI::Components::Gradient::discretize(
+    size_t count)
 {
     float stride = 1.0f / count;
     float offset = stride / 2.0f;
 
-    std::vector<glm::vec4> discrete;
+    std::vector<glm::uint32_t> discrete;
     discrete.reserve(count);
 
     float location = offset;
     for (size_t i = 0; i < count; i++) {
-        discrete.push_back(sample(location));
+        glm::vec4 s = sample(location);
+        discrete.push_back(static_cast<uint32_t>(
+            ImGui::ColorConvertFloat4ToU32(ImVec4(s.r, s.g, s.b, s.a))));
         location += stride;
     }
 
@@ -340,7 +343,7 @@ bool Vol::UI::Components::gradient_edit(
                     gradient.alpha_markers[state.selected_index].value;
                 alpha *= 100.0f;
                 ImGui::PushItemWidth(-1.0f);
-                ImGui::DragFloat(
+                changed |= ImGui::DragFloat(
                     "##opacity_drag", &alpha, 0.5f, 0.0f, 100.0f, "%.0f%%",
                     ImGuiSliderFlags_AlwaysClamp);
                 alpha /= 100.0f;
@@ -361,7 +364,7 @@ bool Vol::UI::Components::gradient_edit(
                     ImGui::OpenPopup("picker-popup");
                 }
                 if (ImGui::BeginPopup("picker-popup")) {
-                    ImGui::ColorPicker3(
+                    changed |= ImGui::ColorPicker3(
                         "##color_picker", &color->r,
                         ImGuiColorEditFlags_NoLabel);
                     ImGui::EndPopup();
@@ -413,7 +416,7 @@ bool Vol::UI::Components::gradient_edit(
         ImGui::TableNextColumn();
         location *= 100.0f;
         ImGui::PushItemWidth(-1.0f);
-        ImGui::DragFloat(
+        changed |= ImGui::DragFloat(
             "##location_drag", &location, 0.5f, 0.0f, 100.0f, "%.0f%%",
             ImGuiSliderFlags_AlwaysClamp);
         location /= 100.0f;
@@ -435,11 +438,13 @@ bool Vol::UI::Components::gradient_edit(
         if (ImGui::Button("Delete")) {
             switch (state.selected_type) {
                 case GradientEditState::MarkerType::Alpha: {
-                    gradient.remove_alpha_marker(state.selected_index);
+                    changed |=
+                        gradient.remove_alpha_marker(state.selected_index);
                     break;
                 }
                 case GradientEditState::MarkerType::Color: {
-                    gradient.remove_color_marker(state.selected_index);
+                    changed |=
+                        gradient.remove_color_marker(state.selected_index);
                     break;
                 }
             }
@@ -533,7 +538,7 @@ std::pair<bool, bool> update_markers(
 
     // Update non-selected markers
     for (size_t i = 0; i < markers.size() - 1; i++) {
-        if (i == state.selected_index) {
+        if (type == state.selected_type && i == state.selected_index) {
             continue;
         }
         update_marker(
@@ -650,7 +655,7 @@ void update_marker(
         float delta = ImGui::GetIO().MouseDelta.x / (max.x - min.x);
         marker.location = std::clamp(marker.location + delta, 0.0f, 1.0f);
 
-        changed |= delta > 0.0f;
+        changed |= delta != 0.0f;
     }
 }
 

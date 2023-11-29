@@ -43,6 +43,7 @@ class OffscreenPass {
 
     void framebuffer_size_changed(uint32_t width, uint32_t height);
     void volume_dataset_changed(Vol::Data::Dataset &dataset);
+    void transfer_function_changed(const std::vector<glm::uint32_t> &data);
 
     inline VkSampler get_sampler() const { return sampler; }
     inline VkImageView get_image_view() const { return color.image_view; }
@@ -63,12 +64,17 @@ class OffscreenPass {
     void create_volume_image(Vol::Data::Dataset &dataset);
     void create_volume_image_view();
     void create_volume_sampler();
+    void create_transfer(const std::vector<glm::uint32_t> &data);
+    void create_transfer_image(const std::vector<glm::uint32_t> &data);
+    void create_transfer_image_view();
+    void create_transfer_sampler();
 
     void update_uniform_buffer(uint32_t frame_index);
     void update_descriptor_sets();
 
     void destroy_image();
     void destroy_volume();
+    void destroy_transfer();
 
     void create_buffer(
         VkDeviceSize size,
@@ -123,5 +129,10 @@ class OffscreenPass {
     VkDeviceMemory volume_image_memory = VK_NULL_HANDLE;
     VkImageView volume_image_view = VK_NULL_HANDLE;
     VkSampler volume_sampler = VK_NULL_HANDLE;
+
+    VkImage transfer_image = VK_NULL_HANDLE;
+    VkDeviceMemory transfer_image_memory = VK_NULL_HANDLE;
+    VkImageView transfer_image_view = VK_NULL_HANDLE;
+    VkSampler transfer_sampler = VK_NULL_HANDLE;
 };
 }  // namespace Vol::Rendering
