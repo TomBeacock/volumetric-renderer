@@ -303,7 +303,7 @@ std::optional<std::filesystem::path> Vol::UI::MainWindow::open_file_dialog()
     const
 {
     nfdchar_t *out_path;
-    nfdfilteritem_t filter_items[1] = {{"Nearly Raw Raster Data", "nffd,ndhr"}};
+    nfdfilteritem_t filter_items[1] = {{"Nearly Raw Raster Data", "nffd,nhdr"}};
     if (NFD_OpenDialog(&out_path, filter_items, 1, nullptr) == NFD_OKAY) {
         std::filesystem::path path(out_path);
         NFD_FreePath(out_path);
