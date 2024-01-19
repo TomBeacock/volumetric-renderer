@@ -1,4 +1,4 @@
-#include "file_parser.h"
+#include "nrrd_file_parser.h"
 
 #include <NrrdIO.h>
 #include <glm/glm.hpp>
@@ -13,20 +13,15 @@ std::vector<float> convert(void *data, int nrrd_type, glm::u32vec3 dimensions);
 template <typename T>
 std::vector<float> convert(void *data, size_t size);
 
-Vol::Data::FileParser::FileParser(const std::filesystem::path &filepath)
-    : filepath(filepath)
-{
-}
-
 Vol::Data::NrrdFileParser::NrrdFileParser(const std::filesystem::path &filepath)
-    : FileParser(filepath)
+    : SingleFileParser(filepath)
 {
 }
 
 Vol::Data::Dataset Vol::Data::NrrdFileParser::parse()
 {
     Nrrd *nrrd_file = nrrdNew();
-    if (nrrdLoad(nrrd_file, filepath.string().c_str(), nullptr)) {
+    if (nrrdLoad(nrrd_file, get_filepath().string().c_str(), nullptr)) {
         throw std::runtime_error("Failed to read file");
     }
 

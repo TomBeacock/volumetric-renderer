@@ -17,7 +17,7 @@ layout(binding = 2) uniform sampler1D u_transfer_func;
 
 
 void main() {
-    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
     vec3 ray_dir = normalize(in_frag_position - u_ubo.camera_position);
     vec3 ray_pos = in_tex_coords;
 
@@ -37,9 +37,11 @@ void main() {
         float density = texture(u_volume, ray_pos).r;
         float t = (density - u_ubo.min_density) / (u_ubo.max_density - u_ubo.min_density);
         vec4 sample_color = texture(u_transfer_func, t);
-        color = (1.0 - color.w) * sample_color + color;
+        color.rgb += color.a * (sample_color.a * sample_color.rgb);
+        color.a *= (1.0 - sample_color.a);
         ray_pos += ray_dir * step_size;
     }
 
+    color.a = 1.0 - color.a;
     out_color = color;
 }
