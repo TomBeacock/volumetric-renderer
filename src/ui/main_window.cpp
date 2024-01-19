@@ -36,13 +36,23 @@ void Vol::UI::MainWindow::update_main_menu_bar()
         if (ImGui::BeginMenu("File")) {
             // Open file menu item
             if (ImGui::BeginMenu("Import")) {
-                if (ImGui::MenuItem("Nearly Raw Raster Data (.nrrd)")) {
+                if (ImGui::MenuItem("Nearly Raw Raster Data (.nrrd, .nhdr)")) {
                     Application::main().get_importer().import(
                         Vol::Data::FileFormat::Nrrd);
                 }
+                set_status_text_on_hover(
+                    "Import a volumetric dataset from a nrrd file or detached "
+                    "header");
+
+                if (ImGui::MenuItem("CSV (.csv)")) {
+                    Application::main().get_importer().import(
+                        Vol::Data::FileFormat::CSV);
+                }
+                set_status_text_on_hover(
+                    "Import a volumetric dataset from a series of CSV slices");
+
                 ImGui::EndMenu();
             }
-            set_status_text_on_hover("Import a volumetric dataset from a file");
 
             ImGui::Separator();
 

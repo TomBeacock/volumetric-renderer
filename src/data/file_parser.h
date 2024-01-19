@@ -11,18 +11,33 @@ namespace Vol::Data
 {
 class FileParser {
   public:
-    FileParser(const std::filesystem::path &filepath);
-
     virtual Dataset parse() = 0;
-
-  protected:
-    const std::filesystem::path filepath;
 };
 
-class NrrdFileParser : public FileParser {
+class SingleFileParser : public FileParser {
   public:
-    explicit NrrdFileParser(const std::filesystem::path &filepath);
+    SingleFileParser(const std::filesystem::path &filepath)
+        : filepath(filepath){};
 
-    virtual Dataset parse() override;
+  protected:
+    const std::filesystem::path &get_filepath() const { return filepath; };
+
+  private:
+    std::filesystem::path filepath;
+};
+
+class MultiFileParser : public FileParser {
+  public:
+    MultiFileParser(const std::vector<std::filesystem::path> &filepaths)
+        : filepaths(filepaths){};
+
+  protected:
+    const std::vector<std::filesystem::path> get_filepaths() const
+    {
+        return filepaths;
+    }
+
+  private:
+    std::vector<std::filesystem::path> filepaths;
 };
 }  // namespace Vol::Data

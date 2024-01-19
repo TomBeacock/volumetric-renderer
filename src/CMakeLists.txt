@@ -26,8 +26,10 @@ add_executable(${PROJECT_NAME} ${OPTIONS}
 	"ui/components/slider.h" "ui/components/slider.cpp"
 
 	"data/dataset.h"
-	"data/file_parser.h" "data/file_parser.cpp"
 	"data/importer.h" "data/importer.cpp"
+	"data/file_parser.h"
+	"data/nrrd_file_parser.h" "data/nrrd_file_parser.cpp"
+	"data/csv_file_parser.h" "data/csv_file_parser.cpp"
 	
 	"scene/scene.h"
 	"scene/camera.h" "scene/camera.cpp"

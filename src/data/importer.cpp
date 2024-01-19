@@ -1,7 +1,8 @@
 #include "importer.h"
 
 #include "application.h"
-#include "data/file_parser.h"
+#include "data/csv_file_parser.h"
+#include "data/nrrd_file_parser.h"
 #include "rendering/offscreen_pass.h"
 #include "rendering/vulkan_context.h"
 #include "ui/ui_context.h"
@@ -24,10 +25,18 @@ void Vol::Data::Importer::import(FileFormat file_format) const
             if (auto filepath = open_file_dialog(
                     {{"Nearly Raw Raster Data", "nffd,nhdr"}})) {
                 file_parser = std::make_unique<NrrdFileParser>(*filepath);
-            } else {
-                return;
             }
+            break;
         }
+        case FileFormat::CSV: {
+            if (auto filepaths = open_multifile_dialog({{"CSV", "csv"}})) {
+                file_parser = std::make_unique<CsvFileParser>(*filepaths);
+            }
+            break;
+        }
+    }
+    if (!file_parser) {
+        return;
     }
     try {
         Dataset dataset = file_parser->parse();

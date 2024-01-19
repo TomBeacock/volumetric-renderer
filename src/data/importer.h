@@ -11,6 +11,7 @@ namespace Vol::Data
 {
 enum class FileFormat {
     Nrrd,
+    CSV,
 };
 
 class Importer {
