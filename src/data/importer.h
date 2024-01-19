@@ -9,8 +9,12 @@ class FileParser;
 
 namespace Vol::Data
 {
+enum class FileFormat {
+    Nrrd,
+};
+
 class Importer {
   public:
-    void import(const std::filesystem::path &filepath) const;
+    void import(FileFormat file_format) const;
 };
 }  // namespace Vol::Data

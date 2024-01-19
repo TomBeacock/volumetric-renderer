@@ -115,7 +115,7 @@ Vol::Rendering::OffscreenPass::OffscreenPass(
     uint32_t height)
     : context(context), width(width), height(height)
 {
-    Vol::Data::Dataset temp_volume{{1, 1, 1}, {1.0f}};
+    Vol::Data::Dataset temp_volume{{1, 1, 1}, 0.0f, 1.0f, {0.0f}};
     std::vector<glm::uint32_t> temp_transfer{0xFFFFFFFF};
 
     create_color_attachment();
@@ -260,6 +260,9 @@ void Vol::Rendering::OffscreenPass::volume_dataset_changed(
 
     destroy_volume();
     create_volume(dataset);
+
+    this->min_density = dataset.min;
+    this->max_density = dataset.max;
 
     update_descriptor_sets();
 }
@@ -566,7 +569,8 @@ void Vol::Rendering::OffscreenPass::create_descriptor_set_layout()
             .binding = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .stageFlags =
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
             .pImmutableSamplers = nullptr,
         },
         // Volume texture
@@ -1149,10 +1153,12 @@ void Vol::Rendering::OffscreenPass::update_uniform_buffer(uint32_t frame_index)
 
     // Create uniform buffer object
     UniformBufferObject ubo = {
-        .camera_position = camera.get_position(),
         .view = camera.get_view(),
         .proj = glm::perspectiveRH(glm::radians(40.0f), aspect, 0.1f, 10.0f) *
                 coordinate_conversion,
+        .camera_position = camera.get_position(),
+        .min_density = this->min_density,
+        .max_density = this->max_density,
     };
 
     memcpy(uniform_buffers_mapped[frame_index], &ubo, sizeof(ubo));

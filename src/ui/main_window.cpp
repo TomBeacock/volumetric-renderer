@@ -27,8 +27,6 @@ void Vol::UI::MainWindow::update()
 
 void Vol::UI::MainWindow::update_main_menu_bar()
 {
-    bool should_import = false;
-
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 6.0f));
 
     // Main menu bar
@@ -37,8 +35,12 @@ void Vol::UI::MainWindow::update_main_menu_bar()
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
         if (ImGui::BeginMenu("File")) {
             // Open file menu item
-            if (ImGui::MenuItem("Import...")) {
-                should_import = true;
+            if (ImGui::BeginMenu("Import")) {
+                if (ImGui::MenuItem("Nearly Raw Raster Data (.nrrd)")) {
+                    Application::main().get_importer().import(
+                        Vol::Data::FileFormat::Nrrd);
+                }
+                ImGui::EndMenu();
             }
             set_status_text_on_hover("Import a volumetric dataset from a file");
 
@@ -66,12 +68,6 @@ void Vol::UI::MainWindow::update_main_menu_bar()
     ImGui::EndMainMenuBar();
 
     ImGui::PopStyleVar();
-
-    if (should_import) {
-        if (auto filepath = open_file_dialog()) {
-            Application::main().get_importer().import(*filepath);
-        }
-    }
 }
 
 void Vol::UI::MainWindow::update_status_bar()
@@ -297,17 +293,4 @@ void Vol::UI::MainWindow::heading(const std::string &text)
     ImGui::PopFont();
 
     ImGui::Dummy(ImVec2(0.0f, 4.0f));
-}
-
-std::optional<std::filesystem::path> Vol::UI::MainWindow::open_file_dialog()
-    const
-{
-    nfdchar_t *out_path;
-    nfdfilteritem_t filter_items[1] = {{"Nearly Raw Raster Data", "nffd,nhdr"}};
-    if (NFD_OpenDialog(&out_path, filter_items, 1, nullptr) == NFD_OKAY) {
-        std::filesystem::path path(out_path);
-        NFD_FreePath(out_path);
-        return path;
-    }
-    return std::nullopt;
 }

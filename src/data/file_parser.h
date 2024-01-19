@@ -19,9 +19,9 @@ class FileParser {
     const std::filesystem::path filepath;
 };
 
-class RawFileParser : public FileParser {
+class NrrdFileParser : public FileParser {
   public:
-    explicit RawFileParser(const std::filesystem::path &filepath);
+    explicit NrrdFileParser(const std::filesystem::path &filepath);
 
     virtual Dataset parse() override;
 };

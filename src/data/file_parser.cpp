@@ -18,12 +18,12 @@ Vol::Data::FileParser::FileParser(const std::filesystem::path &filepath)
 {
 }
 
-Vol::Data::RawFileParser::RawFileParser(const std::filesystem::path &filepath)
+Vol::Data::NrrdFileParser::NrrdFileParser(const std::filesystem::path &filepath)
     : FileParser(filepath)
 {
 }
 
-Vol::Data::Dataset Vol::Data::RawFileParser::parse()
+Vol::Data::Dataset Vol::Data::NrrdFileParser::parse()
 {
     Nrrd *nrrd_file = nrrdNew();
     if (nrrdLoad(nrrd_file, filepath.string().c_str(), nullptr)) {
@@ -37,9 +37,13 @@ Vol::Data::Dataset Vol::Data::RawFileParser::parse()
     NrrdAxisInfo *axis = nrrd_file->axis;
     glm::u32vec3 dimensions(axis[0].size, axis[1].size, axis[2].size);
 
+    std::vector<float> data =
+        convert(nrrd_file->data, nrrd_file->type, dimensions);
     Dataset dataset{
         .dimensions = dimensions,
-        .data = convert(nrrd_file->data, nrrd_file->type, dimensions),
+        .min = *std::min_element(data.begin(), data.end()),
+        .max = *std::max_element(data.begin(), data.end()),
+        .data = data,
     };
 
     nrrdNuke(nrrd_file);
