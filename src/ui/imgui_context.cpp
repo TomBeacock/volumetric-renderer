@@ -109,7 +109,8 @@ void Vol::UI::ImGuiContext::init_backends(SDL_Window *window)
         .Device = vulkan_context->get_device(),
         .Queue = vulkan_context->get_graphics_queue(),
         .DescriptorPool = descriptor_pool,
-        .MinImageCount = swapchain_details.capabilities.minImageCount,
+        .MinImageCount = static_cast<uint32_t>(
+            vulkan_context->get_main_pass()->get_swap_chain().images.size()),
         .ImageCount = static_cast<uint32_t>(
             vulkan_context->get_main_pass()->get_swap_chain().images.size()),
     };

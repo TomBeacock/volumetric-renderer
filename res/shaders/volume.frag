@@ -7,6 +7,7 @@ layout(location = 2) in vec3 in_camera_position;
 layout(location = 0) out vec4 out_color;
 
 layout(binding = 1) uniform sampler3D volume;
+layout(binding = 2) uniform sampler1D transfer_func;
 
 void main() {
     vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
@@ -20,17 +21,18 @@ void main() {
     float step_size = 0.005;
     int steps = int(ray_dist / step_size);
 
+    float density_min = 0.0;
+    float density_max = 255.0;
+
     for (int i = 0; i < steps; i++) {
         if (any(greaterThan(ray_pos, max_bounds)) ||
             any(lessThan(ray_pos, min_bounds))) {
             break;
         }
 
-        vec4 density = texture(volume, ray_pos);
-        vec4 sample_color = vec4(0.0, 0.0, 0.0, 0.0);
-        if (density.x > 140.0) {
-            sample_color = vec4(1.0, 1.0, 1.0, 0.25);
-        }
+        float density = texture(volume, ray_pos).r;
+        float t = (density - density_min) / (density_max - density_min);
+        vec4 sample_color = texture(transfer_func, t);
         color = (1.0 - color.w) * sample_color + color;
         ray_pos += ray_dir * step_size;
     }

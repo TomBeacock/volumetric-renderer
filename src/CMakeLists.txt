@@ -21,6 +21,9 @@ add_executable(${PROJECT_NAME} ${OPTIONS}
 	"ui/ui_context.h" "ui/ui_context.cpp"
 	"ui/main_window.h" "ui/main_window.cpp"
 	"ui/error_popup.h" "ui/error_popup.cpp"
+	"ui/components/gradient.h" "ui/components/gradient.cpp"
+	"ui/components/image_rounded.h" "ui/components/image_rounded.cpp"
+	"ui/components/slider.h" "ui/components/slider.cpp"
 
 	"data/dataset.h"
 	"data/file_parser.h" "data/file_parser.cpp"

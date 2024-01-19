@@ -7,53 +7,15 @@
 #include "rendering/offscreen_pass.h"
 #include "rendering/vulkan_context.h"
 #include "scene/scene.h"
+#include "ui/components/gradient.h"
+#include "ui/components/image_rounded.h"
+#include "ui/components/slider.h"
 #include "ui/ui_context.h"
 
 #include <SDL3/SDL.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <nfd.h>
-
-namespace ImGui
-{
-void ImageRounded(
-    ImTextureID user_texture_id,
-    const ImVec2 &size,
-    const ImVec2 &uv0 = ImVec2(0, 0),
-    const ImVec2 &uv1 = ImVec2(1, 1),
-    const ImVec4 &tint_col = ImVec4(1, 1, 1, 1),
-    const ImVec4 &border_col = ImVec4(0, 0, 0, 0),
-    float rounding = 0.0f)
-{
-    ImGuiWindow *window = GetCurrentWindow();
-    if (window->SkipItems)
-        return;
-
-    ImRect bb(
-        window->DC.CursorPos,
-        ImVec2(
-            window->DC.CursorPos.x + size.x, window->DC.CursorPos.y + size.y));
-    if (border_col.w > 0.0f) {
-        bb.Max = ImVec2(bb.Max.x + 2, bb.Max.y + 2);
-    }
-    ItemSize(bb);
-    if (!ItemAdd(bb, 0))
-        return;
-
-    if (border_col.w > 0.0f) {
-        window->DrawList->AddRect(
-            bb.Min, bb.Max, GetColorU32(border_col), 0.0f);
-        window->DrawList->AddImageRounded(
-            user_texture_id, ImVec2(bb.Min.x + 1, bb.Min.y + 1),
-            ImVec2(bb.Max.x - 1, bb.Max.y - 1), uv0, uv1, GetColorU32(tint_col),
-            rounding);
-    } else {
-        window->DrawList->AddImageRounded(
-            user_texture_id, bb.Min, bb.Max, uv0, uv1, GetColorU32(tint_col),
-            rounding);
-    }
-}
-}  // namespace ImGui
 
 void Vol::UI::MainWindow::update()
 {
@@ -191,7 +153,7 @@ void Vol::UI::MainWindow::update_viewport()
         ImTextureID texture =
             static_cast<ImTextureID>(context.get_descriptor());
         ImGuiStyle &style = ImGui::GetStyle();
-        ImGui::ImageRounded(
+        Components::image_rounded(
             texture, scene_window_size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f),
             ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 0.0f),
             style.ChildRounding);
@@ -217,34 +179,39 @@ void Vol::UI::MainWindow::update_controls()
             "controls", ImVec2(0.0f, 0.0f),
             ImGuiChildFlags_AlwaysUseWindowPadding)) {
         // Create child content
-        ImFont *heading_font = ImGui::GetIO().Fonts->Fonts[1];
-        ImGui::PushFont(heading_font);
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-        ImGui::Text("Display");
-        ImGui::PopStyleColor();
-        ImGui::PopFont();
-
-        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+        heading("Display");
 
         static float brightness = 0.0f, contrast = 0.0f;
-        if (ImGui::BeginTable("display_controls", 3)) {
+        if (ImGui::BeginTable("display_controls", 2)) {
             ImGui::TableSetupColumn(
-                "label_col", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-            ImGui::TableSetupColumn(
-                "slider_col", ImGuiTableColumnFlags_WidthFixed, 200.0f);
-            ImGui::TableSetupColumn(
-                "field_col", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+                "label", ImGuiTableColumnFlags_WidthFixed, 84.0f);
+            ImGui::TableSetupColumn("field", ImGuiTableColumnFlags_WidthFixed);
 
-            slider(
+            Components::slider(
                 "Brightness", &brightness, 0.0f, 100.0f,
-                "Adjust visualization brightness");
-            slider(
+                "Adjust visualization brightness", status_text);
+            Components::slider(
                 "Contrast", &contrast, 0.0f, 100.0f,
-                "Adjust visualization contrast");
+                "Adjust visualization contrast", status_text);
         }
         ImGui::EndTable();
 
+        ImGui::Dummy(ImVec2(0.0f, 8.0f));
         ImGui::Separator();
+        ImGui::Dummy(ImVec2(0.0f, 8.0f));
+
+        heading("Transfer function");
+
+        static Components::Gradient gradient;
+        static Components::GradientEditState gradient_state;
+        if (Components::gradient_edit(
+                "transfer_func", gradient, gradient_state, status_text)) {
+            std::vector<uint32_t> gradient_data = gradient.discretize(256);
+            Application::main()
+                .get_vulkan_context()
+                .get_offscreen_pass()
+                ->transfer_function_changed(gradient_data);
+        }
     }
 
     // End child
@@ -320,40 +287,23 @@ void Vol::UI::MainWindow::set_status_text_on_hover(const std::string &text)
     }
 }
 
-void Vol::UI::MainWindow::slider(
-    const std::string &label,
-    float *v,
-    float v_min,
-    float v_max,
-    const std::string &hint)
+void Vol::UI::MainWindow::heading(const std::string &text)
 {
-    ImGui::TableNextRow();
+    ImFont *heading_font = ImGui::GetIO().Fonts->Fonts[1];
+    ImGui::PushFont(heading_font);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+    ImGui::Text(text.c_str());
+    ImGui::PopStyleColor();
+    ImGui::PopFont();
 
-    ImGui::TableSetColumnIndex(0);
-    ImGui::PushItemWidth(-FLT_MIN);
-    ImGui::AlignTextToFramePadding();
-    ImGui::Text(label.c_str());
-
-    ImGui::TableSetColumnIndex(1);
-    ImGui::PushItemWidth(-FLT_MIN);
-    std::string slider_label = "##" + label + "_slider";
-    ImGui::SliderFloat(slider_label.c_str(), v, v_min, v_max, "");
-    set_status_text_on_hover(hint);
-
-    ImGui::TableSetColumnIndex(2);
-    ImGui::PushItemWidth(-FLT_MIN);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1);
-    std::string input_label = "##" + label + "_input";
-    ImGui::InputFloat(input_label.c_str(), v, 0.0f, 0.0f, "%.1f");
-    set_status_text_on_hover(hint);
-    ImGui::PopStyleVar();
+    ImGui::Dummy(ImVec2(0.0f, 4.0f));
 }
 
 std::optional<std::filesystem::path> Vol::UI::MainWindow::open_file_dialog()
     const
 {
     nfdchar_t *out_path;
-    nfdfilteritem_t filter_items[1] = {{"Nearly Raw Raster Data", "nffd,ndhr"}};
+    nfdfilteritem_t filter_items[1] = {{"Nearly Raw Raster Data", "nffd,nhdr"}};
     if (NFD_OpenDialog(&out_path, filter_items, 1, nullptr) == NFD_OKAY) {
         std::filesystem::path path(out_path);
         NFD_FreePath(out_path);

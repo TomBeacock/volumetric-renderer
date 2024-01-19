@@ -33,18 +33,13 @@ class MainWindow {
 
     void set_status_text_on_hover(const std::string &text);
 
-    void slider(
-        const std::string &label,
-        float *v,
-        float v_min,
-        float v_max,
-        const std::string &hint);
+    void heading(const std::string &text);
 
     std::optional<std::filesystem::path> open_file_dialog() const;
 
   private:
     std::string status_text = "";
     double framerate = 0.0;
-    glm::u32vec2 current_scene_window_size;
+    glm::u32vec2 current_scene_window_size{};
 };
 }  // namespace Vol::UI

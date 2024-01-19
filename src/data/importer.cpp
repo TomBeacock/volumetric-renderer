@@ -17,7 +17,7 @@ void Vol::Data::Importer::import(const std::filesystem::path &filepath) const
 
         std::unique_ptr<FileParser> file_parser;
         if (filepath.extension() == ".nrrd" ||
-            filepath.extension() == ".ndhr") {
+            filepath.extension() == ".nhdr") {
             file_parser = std::make_unique<RawFileParser>(filepath);
         }
 
