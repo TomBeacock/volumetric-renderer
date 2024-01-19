@@ -27,9 +27,11 @@ struct FramebufferAttachment {
 class OffscreenPass {
   private:
     struct UniformBufferObject {
-        alignas(16) glm::vec3 camera_position;
         alignas(16) glm::mat4 view;
         alignas(16) glm::mat4 proj;
+        alignas(16) glm::vec3 camera_position;
+        alignas(4) float min_density;
+        alignas(4) float max_density;
     };
 
   public:
@@ -121,6 +123,7 @@ class OffscreenPass {
     VkDeviceMemory vertex_buffer_memory = VK_NULL_HANDLE;
     VkBuffer index_buffer = VK_NULL_HANDLE;
     VkDeviceMemory index_buffer_memory = VK_NULL_HANDLE;
+
     std::vector<VkBuffer> uniform_buffers;
     std::vector<VkDeviceMemory> uniform_buffers_memory;
     std::vector<void *> uniform_buffers_mapped;
@@ -134,5 +137,8 @@ class OffscreenPass {
     VkDeviceMemory transfer_image_memory = VK_NULL_HANDLE;
     VkImageView transfer_image_view = VK_NULL_HANDLE;
     VkSampler transfer_sampler = VK_NULL_HANDLE;
+
+    float min_density = 0.0f;
+    float max_density = 255.0f;
 };
 }  // namespace Vol::Rendering

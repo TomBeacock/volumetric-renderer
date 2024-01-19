@@ -35,8 +35,6 @@ class MainWindow {
 
     void heading(const std::string &text);
 
-    std::optional<std::filesystem::path> open_file_dialog() const;
-
   private:
     std::string status_text = "";
     double framerate = 0.0;
