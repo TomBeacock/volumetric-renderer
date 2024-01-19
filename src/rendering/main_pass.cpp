@@ -473,6 +473,7 @@ VkPresentModeKHR select_swap_present_mode(
     const std::vector<VkPresentModeKHR> &available_present_modes)
 {
     return VK_PRESENT_MODE_FIFO_KHR;
+    // return VK_PRESENT_MODE_MAILBOX_KHR;
 }
 
 VkExtent2D select_swap_extent(

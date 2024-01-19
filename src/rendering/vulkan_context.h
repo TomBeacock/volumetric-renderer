@@ -48,10 +48,6 @@ class VulkanContext {
     void create_device();
     void create_command_pool();
 
-    void record_command_buffer(
-        VkCommandBuffer command_buffer,
-        uint32_t image_index);
-
   private:
     SDL_Window *window;
     MainPass *main_pass;
