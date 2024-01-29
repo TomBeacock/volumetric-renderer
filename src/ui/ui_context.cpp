@@ -22,19 +22,16 @@ Vol::UI::UIContext::UIContext()
     // Colors
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
     style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
-    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.00802f, 0.00857f, 0.00913f, 1.0f);
-    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.02416f, 0.02519f, 0.02843f, 1.0f);
-    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.02416f, 0.02519f, 0.02843f, 1.0f);
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.102f, 0.106f, 0.110f, 1.0f);
+    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.169f, 0.173f, 0.184f, 1.0f);
+    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.169f, 0.173f, 0.184f, 1.0f);
 
-    style.Colors[ImGuiCol_Border] = ImVec4(0.03689f, 0.03955f, 0.04817f, 1.0f);
+    style.Colors[ImGuiCol_Border] = ImVec4(0.212f, 0.220f, 0.243f, 1.0f);
 
-    style.Colors[ImGuiCol_Text] = ImVec4(0.54572f, 0.54572f, 0.54572f, 1.0f);
-    style.Colors[ImGuiCol_HeaderHovered] =
-        ImVec4(0.0137f, 0.0137f, 0.01444f, 1.0f);
-    style.Colors[ImGuiCol_SliderGrab] =
-        ImVec4(0.43415f, 0.43415f, 0.42869f, 1.0f);
-    style.Colors[ImGuiCol_Separator] =
-        ImVec4(0.00802f, 0.00857f, 0.00913f, 1.0f);
+    style.Colors[ImGuiCol_Text] = ImVec4(0.765f, 0.765f, 0.765f, 1.0f);
+    style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.120f, 0.120f, 0.130f, 1.0f);
+    style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.690f, 0.690f, 0.690f, 1.0f);
+    style.Colors[ImGuiCol_Separator] = ImVec4(0.110f, 0.110f, 0.110f, 1.0f);
 }
 
 void Vol::UI::UIContext::update()
