@@ -167,7 +167,7 @@ void Vol::Rendering::OffscreenPass::record(
 
     // Define clear colors
     std::array<VkClearValue, 2> clear_values = {
-        VkClearValue{.color = {0.01096f, 0.01096f, 0.01096f, 1.0f}},
+        VkClearValue{.color = {0.11f, 0.11f, 0.11f, 1.0f}},
         VkClearValue{.depthStencil = {1.0f, 0}},
     };
 
