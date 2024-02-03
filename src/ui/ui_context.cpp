@@ -18,6 +18,7 @@ Vol::UI::UIContext::UIContext()
     style.PopupRounding = 2.0f;
     style.FrameRounding = 4.0f;
     style.GrabRounding = 10.0f;
+    style.ItemSpacing = ImVec2(4.0f, 4.0f);
 
     // Colors
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
