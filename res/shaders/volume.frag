@@ -11,6 +11,8 @@ layout(binding = 0) uniform UniformBufferObject {
     vec3 camera_position;
     float min_density;
     float max_density;
+    vec3 min_slice;
+    vec3 max_slice;
 } u_ubo;
 layout(binding = 1) uniform sampler3D u_volume;
 layout(binding = 2) uniform sampler1D u_transfer_func;
@@ -34,11 +36,14 @@ void main() {
             break;
         }
 
-        float density = texture(u_volume, ray_pos).r;
-        float t = (density - u_ubo.min_density) / (u_ubo.max_density - u_ubo.min_density);
-        vec4 sample_color = texture(u_transfer_func, t);
-        color.rgb += color.a * (sample_color.a * sample_color.rgb);
-        color.a *= (1.0 - sample_color.a);
+        if (all(lessThan(ray_pos, u_ubo.max_slice)) &&
+            all(greaterThan(ray_pos, u_ubo.min_slice))) {
+            float density = texture(u_volume, ray_pos).r;
+            float t = (density - u_ubo.min_density) / (u_ubo.max_density - u_ubo.min_density);
+            vec4 sample_color = texture(u_transfer_func, t);
+            color.rgb += color.a * (sample_color.a * sample_color.rgb);
+            color.a *= (1.0 - sample_color.a);
+        }
         ray_pos += ray_dir * step_size;
     }
 

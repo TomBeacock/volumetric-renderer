@@ -12,6 +12,8 @@ layout(binding = 0) uniform UniformBufferObject {
     vec3 camera_position;
     float min_density;
     float max_density;
+    vec3 min_slice;
+    vec3 max_slice;
 } u_ubo;
 
 void main() {

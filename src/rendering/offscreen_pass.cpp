@@ -147,6 +147,7 @@ Vol::Rendering::OffscreenPass::~OffscreenPass()
     }
 
     destroy_volume();
+    destroy_transfer();
 
     vkDestroyDescriptorPool(context->get_device(), descriptor_pool, nullptr);
     vkDestroyDescriptorSetLayout(
@@ -261,10 +262,18 @@ void Vol::Rendering::OffscreenPass::volume_dataset_changed(
     destroy_volume();
     create_volume(dataset);
 
-    this->min_density = dataset.min;
-    this->max_density = dataset.max;
+    this->ubo.min_density = dataset.min;
+    this->ubo.max_density = dataset.max;
 
     update_descriptor_sets();
+}
+
+void Vol::Rendering::OffscreenPass::slicing_changed(
+    const glm::vec3 &min,
+    const glm::vec3 &max)
+{
+    this->ubo.min_slice = min;
+    this->ubo.max_slice = max;
 }
 
 void Vol::Rendering::OffscreenPass::transfer_function_changed(
@@ -1151,15 +1160,12 @@ void Vol::Rendering::OffscreenPass::update_uniform_buffer(uint32_t frame_index)
             glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
         glm::scale(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, 1.0f));
 
-    // Create uniform buffer object
-    UniformBufferObject ubo = {
-        .view = camera.get_view(),
-        .proj = glm::perspectiveRH(glm::radians(40.0f), aspect, 0.1f, 10.0f) *
-                coordinate_conversion,
-        .camera_position = camera.get_position(),
-        .min_density = this->min_density,
-        .max_density = this->max_density,
-    };
+    // Update uniform buffer object
+    this->ubo.view = camera.get_view();
+    this->ubo.proj =
+        glm::perspectiveRH(glm::radians(40.0f), aspect, 0.1f, 10.0f) *
+        coordinate_conversion;
+    this->ubo.camera_position = camera.get_position();
 
     memcpy(uniform_buffers_mapped[frame_index], &ubo, sizeof(ubo));
 }

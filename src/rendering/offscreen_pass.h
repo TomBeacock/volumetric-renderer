@@ -32,6 +32,8 @@ class OffscreenPass {
         alignas(16) glm::vec3 camera_position;
         alignas(4) float min_density;
         alignas(4) float max_density;
+        alignas(16) glm::vec3 min_slice = glm::vec3(0.0f);
+        alignas(16) glm::vec3 max_slice = glm::vec3(1.0f);
     };
 
   public:
@@ -45,6 +47,7 @@ class OffscreenPass {
 
     void framebuffer_size_changed(uint32_t width, uint32_t height);
     void volume_dataset_changed(Vol::Data::Dataset &dataset);
+    void slicing_changed(const glm::vec3 &min, const glm::vec3 &max);
     void transfer_function_changed(const std::vector<glm::uint32_t> &data);
 
     inline VkSampler get_sampler() const { return sampler; }
@@ -127,6 +130,8 @@ class OffscreenPass {
     std::vector<VkBuffer> uniform_buffers;
     std::vector<VkDeviceMemory> uniform_buffers_memory;
     std::vector<void *> uniform_buffers_mapped;
+
+    UniformBufferObject ubo;
 
     VkImage volume_image = VK_NULL_HANDLE;
     VkDeviceMemory volume_image_memory = VK_NULL_HANDLE;

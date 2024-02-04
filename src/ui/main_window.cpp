@@ -7,9 +7,9 @@
 #include "rendering/offscreen_pass.h"
 #include "rendering/vulkan_context.h"
 #include "scene/scene.h"
+#include "ui/components/attribute_fields.h"
 #include "ui/components/gradient.h"
 #include "ui/components/image_rounded.h"
-#include "ui/components/slider.h"
 #include "ui/ui_context.h"
 
 #include <SDL3/SDL.h>
@@ -179,6 +179,7 @@ void Vol::UI::MainWindow::update_controls()
 {
     // Push child style
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+    constexpr float label_column_width = 76.0f;
 
     // Begin child
     if (ImGui::BeginChild(
@@ -190,15 +191,51 @@ void Vol::UI::MainWindow::update_controls()
         static float brightness = 0.0f, contrast = 0.0f;
         if (ImGui::BeginTable("display_controls", 2)) {
             ImGui::TableSetupColumn(
-                "label", ImGuiTableColumnFlags_WidthFixed, 84.0f);
-            ImGui::TableSetupColumn("field", ImGuiTableColumnFlags_WidthFixed);
+                "label", ImGuiTableColumnFlags_WidthFixed, label_column_width);
+            ImGui::TableSetupColumn(
+                "field", ImGuiTableColumnFlags_WidthFixed,
+                ImGui::GetContentRegionAvail().x - label_column_width);
 
-            Components::slider(
+            Components::attribute_float(
                 "Brightness", &brightness, 0.0f, 100.0f,
                 "Adjust visualization brightness", status_text);
-            Components::slider(
+            Components::attribute_float(
                 "Contrast", &contrast, 0.0f, 100.0f,
                 "Adjust visualization contrast", status_text);
+        }
+        ImGui::EndTable();
+
+        ImGui::Dummy(ImVec2(0.0f, 8.0f));
+        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0.0f, 8.0f));
+
+        heading("Slicing");
+
+        static glm::vec3 min_slice(0.0f), max_slice(1.0f);
+        if (ImGui::BeginTable("display_controls", 2)) {
+            ImGui::TableSetupColumn(
+                "label", ImGuiTableColumnFlags_WidthFixed, label_column_width);
+            ImGui::TableSetupColumn(
+                "field", ImGuiTableColumnFlags_WidthFixed,
+                ImGui::GetContentRegionAvail().x - label_column_width);
+
+            bool slicing_changed = false;
+            slicing_changed |= Components::attribute_float_range(
+                "X", &min_slice.x, &max_slice.x, 0.0f, 1.0f,
+                "Adjust slicing range along X-axis", status_text);
+            slicing_changed |= Components::attribute_float_range(
+                "Y", &min_slice.y, &max_slice.y, 0.0f, 1.0f,
+                "Adjust slicing range along Y-axis", status_text);
+            slicing_changed |= Components::attribute_float_range(
+                "Z", &min_slice.z, &max_slice.z, 0.0f, 1.0f,
+                "Adjust slicing range along Z-axis", status_text);
+
+            if (slicing_changed) {
+                Application::main()
+                    .get_vulkan_context()
+                    .get_offscreen_pass()
+                    ->slicing_changed(min_slice, max_slice);
+            }
         }
         ImGui::EndTable();
 
