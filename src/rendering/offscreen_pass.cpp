@@ -147,6 +147,7 @@ Vol::Rendering::OffscreenPass::~OffscreenPass()
     }
 
     destroy_volume();
+    destroy_transfer();
 
     vkDestroyDescriptorPool(context->get_device(), descriptor_pool, nullptr);
     vkDestroyDescriptorSetLayout(
