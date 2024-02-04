@@ -4,7 +4,7 @@
 
 namespace Vol::UI::Components
 {
-void attribute_float(
+bool attribute_float(
     const std::string &label,
     float *value,
     float min,
@@ -13,7 +13,7 @@ void attribute_float(
     std::string &status_text,
     const char *format = "%.1f");
 
-void attribute_float_range(
+bool attribute_float_range(
     const std::string &label,
     float *value_min,
     float *value_max,

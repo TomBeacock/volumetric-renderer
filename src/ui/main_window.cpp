@@ -211,9 +211,7 @@ void Vol::UI::MainWindow::update_controls()
 
         heading("Slicing");
 
-        static float x_min = -1.0f, x_max = 1.0f;
-        static float y_min = -1.0f, y_max = 1.0f;
-        static float z_min = -1.0f, z_max = 1.0f;
+        static glm::vec3 min_slice(0.0f), max_slice(1.0f);
         if (ImGui::BeginTable("display_controls", 2)) {
             ImGui::TableSetupColumn(
                 "label", ImGuiTableColumnFlags_WidthFixed, label_column_width);
@@ -221,15 +219,23 @@ void Vol::UI::MainWindow::update_controls()
                 "field", ImGuiTableColumnFlags_WidthFixed,
                 ImGui::GetContentRegionAvail().x - label_column_width);
 
-            Components::attribute_float_range(
-                "X", &x_min, &x_max, -1.0f, 1.0f,
+            bool slicing_changed = false;
+            slicing_changed |= Components::attribute_float_range(
+                "X", &min_slice.x, &max_slice.x, 0.0f, 1.0f,
                 "Adjust slicing range along X-axis", status_text);
-            Components::attribute_float_range(
-                "Y", &y_min, &y_max, -1.0f, 1.0f,
+            slicing_changed |= Components::attribute_float_range(
+                "Y", &min_slice.y, &max_slice.y, 0.0f, 1.0f,
                 "Adjust slicing range along Y-axis", status_text);
-            Components::attribute_float_range(
-                "Z", &z_min, &z_max, -1.0f, 1.0f,
+            slicing_changed |= Components::attribute_float_range(
+                "Z", &min_slice.z, &max_slice.z, 0.0f, 1.0f,
                 "Adjust slicing range along Z-axis", status_text);
+
+            if (slicing_changed) {
+                Application::main()
+                    .get_vulkan_context()
+                    .get_offscreen_pass()
+                    ->slicing_changed(min_slice, max_slice);
+            }
         }
         ImGui::EndTable();
 
